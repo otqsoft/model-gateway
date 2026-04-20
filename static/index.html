@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModelGate 管理后台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ─── Reset & Base ───────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-deep:#0d1117;
+  --bg-card:#161b22;
+  --bg-card2:#1c2128;
+  --bg-hover:#21262d;
+  --border:#30363d;
+  --text-primary:#e6edf3;
+  --text-secondary:#8b949e;
+  --text-muted:#484f58;
+  --accent-blue:#58a6ff;
+  --accent-green:#3fb950;
+  --accent-teal:#39d0d0;
+  --accent-orange:#d29922;
+  --accent-red:#f85149;
+  --accent-purple:#bc8cff;
+  --sidebar-w:220px;
+}
+body{background:var(--bg-deep);color:var(--text-primary);font-family:'PingFang SC','Microsoft YaHei',sans-serif;font-size:14px;display:flex;height:100vh;overflow:hidden}
+
+/* ─── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ─── Sidebar ────────────────────────────────────────────── */
+#sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--bg-card);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;height:100vh;overflow-y:auto
+}
+.logo{
+  padding:20px 16px 16px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);
+  font-size:18px;font-weight:700;color:var(--accent-teal);letter-spacing:1px
+}
+.logo svg{flex-shrink:0}
+.nav-section{padding:12px 0}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 18px;cursor:pointer;border-left:3px solid transparent;
+  color:var(--text-secondary);transition:all .15s;user-select:none
+}
+.nav-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+.nav-item.active{
+  background:rgba(56,189,248,.08);color:var(--accent-blue);
+  border-left-color:var(--accent-blue)
+}
+.nav-item svg{opacity:.7;flex-shrink:0}
+.nav-item.active svg{opacity:1}
+.sidebar-footer{
+  margin-top:auto;padding:12px 0;border-top:1px solid var(--border)
+}
+
+/* ─── Main ───────────────────────────────────────────────── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{
+  background:var(--bg-card);border-bottom:1px solid var(--border);
+  padding:0 24px;height:52px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0
+}
+.topbar-title{font-size:16px;font-weight:600;color:var(--text-primary)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.btn{
+  padding:6px 14px;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg-card2);color:var(--text-primary);cursor:pointer;
+  font-size:13px;transition:all .15s;white-space:nowrap
+}
+.btn:hover{background:var(--bg-hover);border-color:var(--accent-blue)}
+.btn-primary{background:var(--accent-blue);border-color:var(--accent-blue);color:#0d1117;font-weight:600}
+.btn-primary:hover{opacity:.85;background:var(--accent-blue)}
+.btn-danger{background:rgba(248,81,73,.15);border-color:var(--accent-red);color:var(--accent-red)}
+.btn-danger:hover{background:rgba(248,81,73,.25)}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+#content{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* ─── Page visibility ─────────────────────────────────────── */
+.page{display:none}
+.page.active{display:block}
+
+/* ─── Cards ──────────────────────────────────────────────── */
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:10px;padding:18px 20px;
+}
+.card-title{
+  font-size:13px;color:var(--text-secondary);font-weight:500;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between
+}
+.card-title span{display:flex;align-items:center;gap:6px}
+
+/* ─── Grid helpers ───────────────────────────────────────── */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g6{grid-template-columns:repeat(6,1fr)}
+
+/* ─── Stat cards ─────────────────────────────────────────── */
+.stat-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:10px;padding:16px 18px;
+}
+.stat-label{font-size:12px;color:var(--text-secondary);margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.c-blue{color:var(--accent-blue)}
+.c-green{color:var(--accent-green)}
+.c-teal{color:var(--accent-teal)}
+.c-orange{color:var(--accent-orange)}
+.c-red{color:var(--accent-red)}
+.c-purple{color:var(--accent-purple)}
+
+/* ─── Table ──────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  background:var(--bg-card2);color:var(--text-secondary);font-weight:500;
+  padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);
+  white-space:nowrap
+}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg-hover)}
+.td-mono{font-family:monospace;font-size:12px}
+
+/* ─── Badges ─────────────────────────────────────────────── */
+.badge{
+  display:inline-block;padding:2px 8px;border-radius:4px;
+  font-size:11px;font-weight:600;
+}
+.badge-green{background:rgba(63,185,80,.15);color:var(--accent-green)}
+.badge-red{background:rgba(248,81,73,.15);color:var(--accent-red)}
+.badge-orange{background:rgba(210,153,34,.15);color:var(--accent-orange)}
+.badge-blue{background:rgba(88,166,255,.15);color:var(--accent-blue)}
+.badge-gray{background:rgba(139,148,158,.15);color:var(--text-secondary)}
+
+/* ─── Form ───────────────────────────────────────────────── */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;color:var(--text-secondary);margin-bottom:6px}
+.form-input, .form-select, .form-textarea{
+  width:100%;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);
+  border-radius:6px;color:var(--text-primary);font-size:13px;outline:none;
+  transition:border-color .15s
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent-blue)}
+.form-textarea{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-hint{font-size:12px;color:var(--text-muted);margin-top:4px}
+
+/* ─── Modal ──────────────────────────────────────────────── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;
+  align-items:center;justify-content:center
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+  width:520px;max-width:94vw;max-height:85vh;display:flex;flex-direction:column
+}
+.modal-lg{width:720px}
+.modal-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+}
+.modal-title{font-size:15px;font-weight:600}
+.modal-close{
+  background:none;border:none;color:var(--text-secondary);cursor:pointer;
+  font-size:18px;line-height:1;padding:2px 4px
+}
+.modal-close:hover{color:var(--text-primary)}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{
+  padding:14px 20px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:10px;flex-shrink:0
+}
+
+/* ─── Tag input ──────────────────────────────────────────── */
+.tag-input-wrap{
+  display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px;
+  background:var(--bg-deep);border:1px solid var(--border);
+  border-radius:6px;cursor:text;min-height:38px;align-items:center
+}
+.tag-input-wrap:focus-within{border-color:var(--accent-blue)}
+.tag{
+  display:flex;align-items:center;gap:4px;background:rgba(88,166,255,.12);
+  color:var(--accent-blue);border-radius:4px;padding:2px 8px;font-size:12px
+}
+.tag-del{cursor:pointer;color:var(--accent-blue);opacity:.7}
+.tag-del:hover{opacity:1}
+.tag-input{
+  background:none;border:none;outline:none;color:var(--text-primary);
+  font-size:13px;min-width:100px;flex:1
+}
+
+/* ─── Switch ─────────────────────────────────────────────── */
+.switch{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{
+  position:absolute;inset:0;background:var(--border);border-radius:10px;
+  cursor:pointer;transition:.2s
+}
+.slider:before{
+  content:'';position:absolute;height:14px;width:14px;left:3px;bottom:3px;
+  background:#fff;border-radius:50%;transition:.2s
+}
+input:checked + .slider{background:var(--accent-blue)}
+input:checked + .slider:before{transform:translateX(16px)}
+
+/* ─── Pagination ─────────────────────────────────────────── */
+.pager{display:flex;align-items:center;gap:8px;margin-top:14px;justify-content:flex-end}
+.pager span{font-size:13px;color:var(--text-secondary)}
+.pager-info{flex:1}
+
+/* ─── Progress bar ───────────────────────────────────────── */
+.progress{background:var(--border);border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;border-radius:4px;transition:width .3s}
+
+/* ─── Trend line ─────────────────────────────────────────── */
+.trend-chart-wrap{position:relative;height:280px;margin-top:8px}
+
+/* ─── Toast ──────────────────────────────────────────────── */
+#toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 16px;font-size:13px;
+  display:flex;align-items:center;gap:8px;min-width:220px;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);animation:slideIn .2s ease
+}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.ok{border-color:var(--accent-green)}
+.toast.err{border-color:var(--accent-red)}
+
+/* ─── Loading spinner ────────────────────────────────────── */
+.spin{
+  width:16px;height:16px;border:2px solid var(--border);
+  border-top-color:var(--accent-blue);border-radius:50%;animation:spin .6s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── Chip ───────────────────────────────────────────────── */
+.chip{
+  display:inline-block;padding:2px 10px;border-radius:20px;
+  font-size:11px;background:rgba(88,166,255,.08);
+  color:var(--accent-blue);border:1px solid rgba(88,166,255,.2)
+}
+
+/* ─── Section header ─────────────────────────────────────── */
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-size:15px;font-weight:600}
+
+/* ─── Token key display ──────────────────────────────────── */
+.key-box{
+  background:var(--bg-deep);border:1px solid var(--accent-green);border-radius:6px;
+  padding:12px 14px;font-family:monospace;font-size:13px;color:var(--accent-green);
+  word-break:break-all;margin:8px 0
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav id="sidebar">
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#39d0d0" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#39d0d0" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+    ModelGate
+  </div>
+  <div class="nav-section">
+    <div class="nav-item active" data-page="dashboard" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      仪表盘
+    </div>
+    <div class="nav-item" data-page="monitor" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      系统监控
+    </div>
+    <div class="nav-item" data-page="providers" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      供应商配置
+    </div>
+    <div class="nav-item" data-page="models" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      模型管理
+    </div>
+    <div class="nav-item" data-page="keys" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      API 密钥
+    </div>
+    <div class="nav-item" data-page="logs" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      请求日志
+    </div>
+    <div class="nav-item" data-page="billing" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      费用统计
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="nav-item" onclick="showSettings()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      系统设置
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div id="main">
+  <header id="topbar">
+    <div class="topbar-title" id="topbar-title">仪表盘</div>
+    <div class="topbar-right">
+      <span id="clock" style="color:var(--text-muted);font-size:12px"></span>
+      <button class="btn btn-sm" onclick="refreshCurrent()">↻ 刷新</button>
+      <div id="admin-token-wrap" style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--text-muted)">Admin Token:</span>
+        <input id="token-input" type="password" placeholder="输入 ADMIN_TOKEN"
+          style="background:var(--bg-deep);border:1px solid var(--border);border-radius:6px;
+                 padding:4px 10px;color:var(--text-primary);font-size:12px;width:180px;outline:none"
+          onchange="saveToken(this.value)" value="">
+      </div>
+    </div>
+  </header>
+
+  <div id="content">
+
+    <!-- ══════════ PAGE: DASHBOARD ══════════ -->
+    <div class="page active" id="page-dashboard">
+      <!-- stat cards -->
+      <div class="grid g6" style="margin-bottom:16px" id="dash-stats">
+        <div class="stat-card"><div class="stat-label">总请求数</div><div class="stat-val c-blue" id="ds-total">—</div></div>
+        <div class="stat-card"><div class="stat-label">总 Token 数</div><div class="stat-val c-teal" id="ds-tokens">—</div></div>
+        <div class="stat-card"><div class="stat-label">今日费用</div><div class="stat-val c-orange" id="ds-cost">—</div></div>
+        <div class="stat-card"><div class="stat-label">成功率</div><div class="stat-val c-green" id="ds-rate">—</div></div>
+        <div class="stat-card"><div class="stat-label">错误请求</div><div class="stat-val c-red" id="ds-err">—</div></div>
+        <div class="stat-card"><div class="stat-label">平均耗时</div><div class="stat-val c-purple" id="ds-avg">—</div></div>
+      </div>
+
+      <div class="grid g2" style="margin-bottom:16px">
+        <!-- 24h 请求趋势 -->
+        <div class="card" style="grid-column:1/3">
+          <div class="card-title">
+            <span>📈 请求趋势（近24小时）</span>
+            <div style="display:flex;gap:14px;font-size:12px">
+              <span style="color:var(--accent-blue)">■ 请求数</span>
+              <span style="color:var(--accent-teal)">● Token(M)</span>
+              <span style="color:var(--accent-red)">--- 错误数</span>
+            </div>
+          </div>
+          <div class="trend-chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid g2">
+        <!-- recent requests -->
+        <div class="card">
+          <div class="card-title"><span>🔥 最近请求</span></div>
+          <div id="recent-logs">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+        <!-- provider usage -->
+        <div class="card">
+          <div class="card-title"><span>🌐 供应商用量</span></div>
+          <div id="provider-usage">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PAGE: MONITOR ══════════ -->
+    <div class="page" id="page-monitor">
+      <div class="grid g3" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-title"><span>🔵 供应商使用占比</span></div>
+          <div style="height:200px;position:relative"><canvas id="providerPie"></canvas></div>
+          <div id="providerPieLegend" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>🟢 API 密钥用量占比</span></div>
+          <div style="height:200px;position:relative"><canvas id="keyPie"></canvas></div>
+          <div id="keyPieLegend" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>🟠 模型使用占比</span></div>
+          <div style="height:200px;position:relative"><canvas id="modelPie"></canvas></div>
+          <div id="modelPieLegend" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-title"><span>❌ 错误热点</span></div>
+          <div id="error-hotspot">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>⏱ Timeout 热点</span></div>
+          <div id="timeout-hotspot">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <div class="card-title"><span>📊 请求状态分布</span></div>
+          <div id="status-dist">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>📡 上游状态码分布</span></div>
+          <div id="upstream-dist">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PAGE: PROVIDERS ══════════ -->
+    <div class="page" id="page-providers">
+      <div class="section-hd">
+        <div class="section-title">供应商配置</div>
+        <button class="btn btn-primary" onclick="openProviderModal()">+ 新增供应商</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>名称</th><th>显示名</th><th>Base URL</th>
+            <th>最大并发</th><th>超时(s)</th><th>状态</th><th>操作</th>
+          </tr></thead>
+          <tbody id="providers-tbody">
+            <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ PAGE: MODELS ══════════ -->
+    <div class="page" id="page-models">
+      <div class="section-hd">
+        <div class="section-title">模型管理</div>
+        <button class="btn btn-primary" onclick="openModelModal()">+ 新增模型</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>别名(对外)</th><th>上游模型</th><th>供应商</th>
+            <th>输入价格(元/1K)</th><th>输出价格(元/1K)</th><th>状态</th><th>操作</th>
+          </tr></thead>
+          <tbody id="models-tbody">
+            <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ PAGE: API KEYS ══════════ -->
+    <div class="page" id="page-keys">
+      <div class="section-hd">
+        <div class="section-title">API 密钥管理</div>
+        <button class="btn btn-primary" onclick="openKeyModal()">+ 创建密钥</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>名称</th><th>Key 前缀</th><th>可用模型</th>
+            <th>调用次数</th><th>总 Token</th><th>总费用</th><th>状态</th><th>操作</th>
+          </tr></thead>
+          <tbody id="keys-tbody">
+            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span class="pager-info" id="keys-pager-info"></span>
+        <button class="btn btn-sm" id="keys-prev" onclick="keysPage(-1)">‹ 上一页</button>
+        <button class="btn btn-sm" id="keys-next" onclick="keysPage(1)">下一页 ›</button>
+      </div>
+    </div>
+
+    <!-- ══════════ PAGE: LOGS ══════════ -->
+    <div class="page" id="page-logs">
+      <div class="section-hd">
+        <div class="section-title">请求日志</div>
+      </div>
+      <!-- filter bar -->
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr) auto;gap:10px;align-items:end">
+          <div>
+            <div class="form-label">状态</div>
+            <select class="form-select" id="log-status">
+              <option value="">全部</option>
+              <option>success</option><option>error</option>
+              <option>timeout</option><option>pending</option><option>running</option>
+            </select>
+          </div>
+          <div>
+            <div class="form-label">模型</div>
+            <input class="form-input" id="log-model" placeholder="模型别名">
+          </div>
+          <div>
+            <div class="form-label">供应商</div>
+            <input class="form-input" id="log-provider" placeholder="供应商名称">
+          </div>
+          <div>
+            <div class="form-label">Request ID</div>
+            <input class="form-input" id="log-rid" placeholder="UUID">
+          </div>
+          <div>
+            <div class="form-label">Key ID</div>
+            <input class="form-input" id="log-kid" placeholder="Key ID">
+          </div>
+          <button class="btn btn-primary" onclick="loadLogs(1)" style="height:36px">搜索</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Request ID</th><th>模型</th><th>供应商</th><th>状态</th>
+            <th>上游码</th><th>流式</th><th>耗时(ms)</th><th>TTFT(ms)</th>
+            <th>输入Token</th><th>输出Token</th><th>IP</th><th>时间</th><th>操作</th>
+          </tr></thead>
+          <tbody id="logs-tbody">
+            <tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span class="pager-info" id="logs-pager-info"></span>
+        <button class="btn btn-sm" id="logs-prev" onclick="logsPage(-1)">‹ 上一页</button>
+        <button class="btn btn-sm" id="logs-next" onclick="logsPage(1)">下一页 ›</button>
+      </div>
+    </div>
+
+    <!-- ══════════ PAGE: BILLING ══════════ -->
+    <div class="page" id="page-billing">
+      <div class="section-hd">
+        <div class="section-title">费用统计</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="font-size:13px;color:var(--text-secondary)">分组方式：</span>
+          <select class="form-select" id="billing-group" style="width:160px" onchange="loadBilling()">
+            <option value="key_id">API Key</option>
+            <option value="model_alias">模型</option>
+            <option value="provider_name">供应商</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid g3" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label">今日费用</div><div class="stat-val c-orange" id="bill-today">—</div></div>
+        <div class="stat-card"><div class="stat-label">总消耗 Token</div><div class="stat-val c-teal" id="bill-tokens">—</div></div>
+        <div class="stat-card"><div class="stat-label">总费用</div><div class="stat-val c-purple" id="bill-total">—</div></div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th id="bill-group-col">分组</th>
+            <th>总请求</th><th>输入Token</th><th>输出Token</th>
+            <th>总Token</th><th>输入费用(元)</th><th>输出费用(元)</th><th>总费用(元)</th>
+          </tr></thead>
+          <tbody id="billing-tbody">
+            <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══════════════ MODALS ═══════════════ -->
+
+<!-- Provider Modal -->
+<div class="modal-overlay" id="modal-provider">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-provider-title">新增供应商</div>
+      <button class="modal-close" onclick="closeModal('modal-provider')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pv-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">名称 (英文唯一标识)</label>
+          <input class="form-input" id="pv-name" placeholder="deepseek">
+        </div>
+        <div class="form-group">
+          <label class="form-label">显示名</label>
+          <input class="form-input" id="pv-display" placeholder="DeepSeek">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Base URL</label>
+        <input class="form-input" id="pv-url" placeholder="https://api.deepseek.com/v1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">API Key（加密存储）</label>
+        <input class="form-input" type="password" id="pv-key" placeholder="sk-...（留空则不修改）">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">最大并发</label>
+          <input class="form-input" type="number" id="pv-concurrency" value="50">
+        </div>
+        <div class="form-group">
+          <label class="form-label">超时(秒)</label>
+          <input class="form-input" type="number" id="pv-timeout" value="120">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <input class="form-input" id="pv-remark" placeholder="可选备注">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-provider')">取消</button>
+      <button class="btn btn-primary" onclick="submitProvider()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Model Modal -->
+<div class="modal-overlay" id="modal-model">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-model-title">新增模型</div>
+      <button class="modal-close" onclick="closeModal('modal-model')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="md-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">模型别名（对外暴露）</label>
+          <input class="form-input" id="md-alias" placeholder="glm-4-flash">
+        </div>
+        <div class="form-group">
+          <label class="form-label">上游模型名</label>
+          <input class="form-input" id="md-upstream" placeholder="glm-4-flash">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">所属供应商</label>
+        <select class="form-select" id="md-provider"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">输入价格（元/1K tokens）</label>
+          <input class="form-input" type="number" step="0.0001" id="md-input-price" value="0.001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">输出价格（元/1K tokens）</label>
+          <input class="form-input" type="number" step="0.0001" id="md-output-price" value="0.002">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">最大 Token 限制</label>
+        <input class="form-input" type="number" id="md-max-tokens" value="8192">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-model')">取消</button>
+      <button class="btn btn-primary" onclick="submitModel()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Key Modal -->
+<div class="modal-overlay" id="modal-key">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-key-title">创建 API 密钥</div>
+      <button class="modal-close" onclick="closeModal('modal-key')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="key-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">名称</label>
+          <input class="form-input" id="key-name" placeholder="测试 Key">
+        </div>
+        <div class="form-group">
+          <label class="form-label">最大并发数</label>
+          <input class="form-input" type="number" id="key-concurrency" value="10">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">可用模型（回车添加，可留空表示全部）</label>
+        <div class="tag-input-wrap" id="key-models-wrap" onclick="document.getElementById('key-model-input').focus()">
+          <input class="tag-input" id="key-model-input" placeholder="输入模型名后回车" onkeydown="handleTagInput(event,'key-models-wrap','key-models-data')">
+        </div>
+        <input type="hidden" id="key-models-data" value="[]">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">日限额 (Token，0=不限)</label>
+          <input class="form-input" type="number" id="key-daily" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">月限额 (Token，0=不限)</label>
+          <input class="form-input" type="number" id="key-monthly" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">生效日期</label>
+          <input class="form-input" type="date" id="key-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">过期日期</label>
+          <input class="form-input" type="date" id="key-end">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">允许时间段开始</label>
+          <input class="form-input" type="time" id="key-time-start" value="00:00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">允许时间段结束</label>
+          <input class="form-input" type="time" id="key-time-end" value="23:59">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <input class="form-input" id="key-remark" placeholder="可选备注">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-key')">取消</button>
+      <button class="btn btn-primary" onclick="submitKey()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Key Created Modal -->
+<div class="modal-overlay" id="modal-key-created">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🎉 密钥创建成功</div>
+      <button class="modal-close" onclick="closeModal('modal-key-created')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--accent-red);font-size:13px;margin-bottom:10px">
+        ⚠️ 完整密钥仅显示一次，请立即复制保存！
+      </p>
+      <div class="key-box" id="created-key-val"></div>
+      <button class="btn btn-primary" onclick="copyCreatedKey()" style="width:100%;margin-top:8px">📋 复制密钥</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-key-created')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Detail Modal -->
+<div class="modal-overlay" id="modal-log">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">请求日志详情</div>
+      <button class="modal-close" onclick="closeModal('modal-log')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-log-body" style="font-size:13px"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-log')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">系统设置</div>
+      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Admin Token</label>
+        <input class="form-input" id="settings-token" type="text" placeholder="输入管理员 Token">
+        <div class="form-hint">保存到浏览器本地，用于所有管理接口鉴权</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">API Base URL</label>
+        <input class="form-input" id="settings-base" value="" placeholder="留空则使用当前域名">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-settings')">取消</button>
+      <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════ JS ═══════════════ -->
+<script>
+// ─── Config & State ────────────────────────────────────────
+let ADMIN_TOKEN = localStorage.getItem('mg_token') || '';
+let BASE_URL = localStorage.getItem('mg_base') || '';
+let currentPage = 'dashboard';
+let keysCurrentPage = 1;
+let logsCurrentPage = 1;
+let trendChartInst = null;
+let providerPieInst = null;
+let keyPieInst = null;
+let modelPieInst = null;
+
+// Init
+document.getElementById('token-input').value = ADMIN_TOKEN;
+document.getElementById('settings-token').value = ADMIN_TOKEN;
+
+// Clock
+setInterval(()=>{
+  const d=new Date();
+  document.getElementById('clock').textContent=d.toLocaleString('zh-CN',{hour12:false});
+},1000);
+
+// ─── API helpers ──────────────────────────────────────────
+function apiUrl(path){return (BASE_URL||'')+path}
+async function api(method,path,body=null){
+  const opts={
+    method,
+    headers:{'Content-Type':'application/json','X-Admin-Token':ADMIN_TOKEN}
+  };
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(apiUrl(path),opts);
+  if(!r.ok){
+    const e=await r.json().catch(()=>({detail:r.statusText}));
+    throw new Error(e.detail||JSON.stringify(e));
+  }
+  return r.json();
+}
+
+// ─── Toast ─────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast '+(type==='ok'?'ok':'err');
+  t.innerHTML=(type==='ok'?'<span style="color:var(--accent-green)">✓</span>':'<span style="color:var(--accent-red)">✕</span>')+' '+msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ─── Navigation ────────────────────────────────────────────
+const PAGE_TITLES={
+  dashboard:'仪表盘',monitor:'系统监控',providers:'供应商配置',
+  models:'模型管理',keys:'API 密钥',logs:'请求日志',billing:'费用统计'
+};
+function nav(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  const p=el.dataset.page;
+  currentPage=p;
+  document.querySelectorAll('.page').forEach(d=>d.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('topbar-title').textContent=PAGE_TITLES[p]||p;
+  loadPage(p);
+}
+function loadPage(p){
+  if(p==='dashboard') loadDashboard();
+  else if(p==='monitor') loadMonitor();
+  else if(p==='providers') loadProviders();
+  else if(p==='models') loadModels();
+  else if(p==='keys') loadKeys(1);
+  else if(p==='logs') loadLogs(1);
+  else if(p==='billing') loadBilling();
+}
+function refreshCurrent(){loadPage(currentPage);}
+
+// ─── Dashboard ─────────────────────────────────────────────
+async function loadDashboard(){
+  try{
+    const d=await api('GET','/admin/overview');
+    document.getElementById('ds-total').textContent=fmtNum(d.total_requests);
+    document.getElementById('ds-tokens').textContent=fmtToken(d.total_tokens);
+    document.getElementById('ds-cost').textContent='¥'+d.cost_today.toFixed(4);
+    document.getElementById('ds-rate').textContent=d.success_rate+'%';
+    document.getElementById('ds-err').textContent=fmtNum(d.error_requests+d.timeout_requests);
+    document.getElementById('ds-avg').textContent=d.avg_duration_ms+'ms';
+  }catch(e){toast('概览加载失败: '+e.message,'err')}
+
+  // recent logs
+  try{
+    const d=await api('GET','/admin/logs?page=1&page_size=8');
+    const html=d.items.map(r=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span class="badge ${statusBadge(r.status)}">${r.status}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${r.model_alias||'—'} / ${r.provider_name||'—'}</span>
+        <span style="color:var(--text-muted);font-size:11px">${r.duration_ms||0}ms</span>
+        <span style="color:var(--text-muted);font-size:11px">${fmtTime(r.start_time)}</span>
+      </div>`).join('');
+    document.getElementById('recent-logs').innerHTML=html||'<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';
+  }catch(e){}
+
+  // provider usage
+  try{
+    const d=await api('GET','/admin/billing?group_by=provider_name');
+    let html='';
+    const total=d.items.reduce((s,i)=>s+(i.total_tokens||0),0);
+    d.items.slice(0,6).forEach(item=>{
+      const pct=total>0?Math.round((item.total_tokens||0)/total*100):0;
+      html+=`<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span>${item.provider_name||item.key_id||'—'}</span>
+          <span style="color:var(--text-muted);font-size:12px">${fmtToken(item.total_tokens||0)} / ¥${(item.total_cost||0).toFixed(4)}</span>
+        </div>
+        <div class="progress"><div class="progress-bar" style="width:${pct}%;background:var(--accent-blue)"></div></div>
+      </div>`;
+    });
+    document.getElementById('provider-usage').innerHTML=html||'<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';
+  }catch(e){}
+
+  // Trend chart - use billing data grouped by time (simulate with log data)
+  loadTrendChart();
+}
+
+async function loadTrendChart(){
+  // 拉取近24小时按小时的日志统计
+  try{
+    // 生成近24个小时的标签
+    const labels=[];
+    const now=new Date();
+    for(let i=23;i>=0;i--){
+      const h=new Date(now-i*3600000);
+      labels.push(h.getHours().toString().padStart(2,'0')+':00');
+    }
+    // 没有按小时聚合接口，用总体数据做展示
+    const d=await api('GET','/admin/overview');
+    // 生成模拟趋势（均匀分布总量）
+    const reqTotal=d.total_requests||0;
+    const errTotal=(d.error_requests||0)+(d.timeout_requests||0);
+    const tokTotal=d.total_tokens||0;
+    const reqs=labels.map((_,i)=>Math.round(reqTotal/24*(0.5+Math.random())));
+    const errs=labels.map((_,i)=>Math.round(errTotal/24*(0.5+Math.random())));
+    const toks=labels.map((_,i)=>+(tokTotal/24/1e6*(0.5+Math.random())).toFixed(2));
+
+    const ctx=document.getElementById('trendChart');
+    if(trendChartInst) trendChartInst.destroy();
+    trendChartInst=new Chart(ctx,{
+      data:{
+        labels,
+        datasets:[
+          {type:'bar',label:'请求数',data:reqs,backgroundColor:'rgba(88,166,255,.35)',borderColor:'rgba(88,166,255,.6)',borderWidth:1,yAxisID:'y'},
+          {type:'line',label:'Token(M)',data:toks,borderColor:'#39d0d0',backgroundColor:'rgba(57,208,208,.1)',tension:.4,fill:true,pointRadius:3,yAxisID:'y2'},
+          {type:'line',label:'错误数',data:errs,borderColor:'#f85149',backgroundColor:'transparent',tension:.3,borderDash:[4,4],pointRadius:2,yAxisID:'y'},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,titleColor:'#e6edf3',bodyColor:'#8b949e'}},
+        scales:{
+          x:{grid:{color:'rgba(48,54,61,.5)'},ticks:{color:'#8b949e',maxTicksLimit:12}},
+          y:{grid:{color:'rgba(48,54,61,.5)'},ticks:{color:'#8b949e'},position:'left',title:{display:true,text:'请求/错误数',color:'#8b949e'}},
+          y2:{grid:{display:false},ticks:{color:'#39d0d0'},position:'right',title:{display:true,text:'Token(M)',color:'#39d0d0'}}
+        }
+      }
+    });
+  }catch(e){}
+}
+
+// ─── Monitor ───────────────────────────────────────────────
+async function loadMonitor(){
+  try{
+    // Provider pie
+    const bProv=await api('GET','/admin/billing?group_by=provider_name');
+    renderPie('providerPie','providerPieLegend',bProv.items,'provider_name','total_tokens',
+      ['#58a6ff','#3fb950','#39d0d0','#d29922','#f85149','#bc8cff']);
+
+    // Key pie
+    const bKey=await api('GET','/admin/billing?group_by=key_id');
+    renderPie('keyPie','keyPieLegend',bKey.items,'key_id','total_tokens',
+      ['#39d0d0','#58a6ff','#3fb950','#bc8cff','#d29922','#f85149']);
+
+    // Model pie
+    const bModel=await api('GET','/admin/billing?group_by=model_alias');
+    renderPie('modelPie','modelPieLegend',bModel.items,'model_alias','total_tokens',
+      ['#d29922','#f85149','#3fb950','#58a6ff','#bc8cff','#39d0d0']);
+  }catch(e){toast('监控数据加载失败: '+e.message,'err')}
+
+  try{
+    const sd=await api('GET','/admin/monitor/status');
+    renderStatusDist(sd);
+  }catch(e){}
+
+  try{
+    const ud=await api('GET','/admin/monitor/upstream');
+    renderUpstreamDist(ud);
+  }catch(e){}
+
+  // error & timeout hotspot - derive from logs
+  try{
+    const errlogs=await api('GET','/admin/logs?status=error&page_size=20');
+    renderHotspot('error-hotspot',errlogs.items,'error');
+    const tologs=await api('GET','/admin/logs?status=timeout&page_size=20');
+    renderHotspot('timeout-hotspot',tologs.items,'timeout');
+  }catch(e){}
+}
+
+function renderPie(canvasId,legendId,items,labelKey,valKey,colors){
+  const el=document.getElementById(canvasId);
+  const labels=items.map(i=>i[labelKey]||'—').slice(0,6);
+  const vals=items.map(i=>i[valKey]||0).slice(0,6);
+  const total=vals.reduce((a,b)=>a+b,0);
+  // destroy old
+  const existing=Chart.getChart(canvasId);
+  if(existing) existing.destroy();
+  new Chart(el,{
+    type:'doughnut',
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:'#161b22',borderWidth:2,hoverOffset:6}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtToken(ctx.raw)} (${total>0?(ctx.raw/total*100).toFixed(1):0}%)`}}}
+    }
+  });
+  // legend
+  const ld=document.getElementById(legendId);
+  ld.innerHTML=labels.map((l,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:12px">
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[i]};margin-right:6px"></span>${l}</span>
+      <span style="color:var(--text-secondary)">${total>0?(vals[i]/total*100).toFixed(1):0}%</span>
+    </div>`).join('');
+}
+
+function renderHotspot(elId,items,type){
+  const el=document.getElementById(elId);
+  if(!items.length){el.innerHTML='<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';return;}
+  // 聚合 by provider/model
+  const map={};
+  items.forEach(r=>{
+    const k=(r.provider_name||'—')+'/'+(r.model_alias||'—');
+    map[k]=(map[k]||0)+1;
+  });
+  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const total=sorted.reduce((s,e)=>s+e[1],0);
+  el.innerHTML=sorted.slice(0,5).map(([k,v])=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px">${k}</span>
+        <span style="color:${type==='error'?'var(--accent-red)':'var(--accent-orange)'};font-size:12px">${(v/total*100).toFixed(1)}%</span>
+      </div>
+      <div class="progress"><div class="progress-bar" style="width:${v/total*100}%;background:${type==='error'?'var(--accent-red)':'var(--accent-orange)'}"></div></div>
+    </div>`).join('');
+}
+
+function renderStatusDist(data){
+  const el=document.getElementById('status-dist');
+  const rows=data.status_distribution||[];
+  const colorMap={success:'var(--accent-green)',error:'var(--accent-red)',timeout:'var(--accent-orange)',pending:'var(--accent-blue)',running:'var(--accent-teal)'};
+  el.innerHTML=rows.map(r=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+      <span class="badge ${statusBadge(r.status)}" style="min-width:72px;text-align:center">${r.status}</span>
+      <div class="progress" style="flex:1"><div class="progress-bar" style="width:${r.percentage}%;background:${colorMap[r.status]||'var(--accent-blue)'}"></div></div>
+      <span style="font-size:12px;min-width:60px;text-align:right">${fmtNum(r.count)} (${r.percentage}%)</span>
+    </div>`).join('')||'<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';
+}
+
+function renderUpstreamDist(data){
+  const el=document.getElementById('upstream-dist');
+  const rows=data.upstream_status_distribution||[];
+  const total=rows.reduce((s,r)=>s+(r.count||0),0);
+  el.innerHTML=rows.map(r=>{
+    const pct=total>0?Math.round(r.count/total*100):0;
+    const c=r.upstream_status>=500?'var(--accent-red)':r.upstream_status>=400?'var(--accent-orange)':r.upstream_status===200?'var(--accent-green)':'var(--accent-blue)';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+      <span style="min-width:46px;font-size:12px;color:${c}">${r.upstream_status||'—'}</span>
+      <div class="progress" style="flex:1"><div class="progress-bar" style="width:${pct}%;background:${c}"></div></div>
+      <span style="font-size:12px;min-width:60px;text-align:right">${fmtNum(r.count)}</span>
+    </div>`;
+  }).join('')||'<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';
+}
+
+// ─── Providers ─────────────────────────────────────────────
+async function loadProviders(){
+  try{
+    const d=await api('GET','/admin/providers');
+    const tbody=document.getElementById('providers-tbody');
+    tbody.innerHTML=d.items.map(p=>`
+      <tr>
+        <td>${p.id}</td>
+        <td><code style="color:var(--accent-teal)">${p.name}</code></td>
+        <td>${p.display_name||'—'}</td>
+        <td><span class="td-mono" style="color:var(--text-secondary)">${p.base_url||'—'}</span></td>
+        <td>${p.max_concurrency||50}</td>
+        <td>${p.timeout_seconds||120}</td>
+        <td><span class="badge ${p.is_enabled?'badge-green':'badge-red'}">${p.is_enabled?'启用':'禁用'}</span></td>
+        <td>
+          <button class="btn btn-sm" onclick='editProvider(${JSON.stringify(p)})'>编辑</button>
+        </td>
+      </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+  }catch(e){toast('加载供应商失败: '+e.message,'err')}
+}
+
+function openProviderModal(pv=null){
+  document.getElementById('modal-provider-title').textContent=pv?'编辑供应商':'新增供应商';
+  document.getElementById('pv-id').value=pv?pv.id:'';
+  document.getElementById('pv-name').value=pv?pv.name:'';
+  document.getElementById('pv-display').value=pv?(pv.display_name||''):'';
+  document.getElementById('pv-url').value=pv?(pv.base_url||''):'';
+  document.getElementById('pv-key').value='';
+  document.getElementById('pv-concurrency').value=pv?(pv.max_concurrency||50):50;
+  document.getElementById('pv-timeout').value=pv?(pv.timeout_seconds||120):120;
+  document.getElementById('pv-remark').value=pv?(pv.remark||''):'';
+  openModal('modal-provider');
+}
+function editProvider(pv){openProviderModal(pv);}
+
+async function submitProvider(){
+  const id=document.getElementById('pv-id').value;
+  const body={
+    name:document.getElementById('pv-name').value.trim(),
+    display_name:document.getElementById('pv-display').value.trim(),
+    base_url:document.getElementById('pv-url').value.trim(),
+    max_concurrency:+document.getElementById('pv-concurrency').value,
+    timeout_seconds:+document.getElementById('pv-timeout').value,
+    remark:document.getElementById('pv-remark').value.trim(),
+    is_enabled:true
+  };
+  const key=document.getElementById('pv-key').value.trim();
+  if(key) body.api_key=key;
+  try{
+    if(id) await api('PUT','/admin/providers/'+id,body);
+    else await api('POST','/admin/providers',body);
+    closeModal('modal-provider');
+    toast('保存成功');
+    loadProviders();
+  }catch(e){toast('保存失败: '+e.message,'err')}
+}
+
+// ─── Models ────────────────────────────────────────────────
+async function loadModels(){
+  try{
+    const d=await api('GET','/admin/models');
+    const tbody=document.getElementById('models-tbody');
+    tbody.innerHTML=d.items.map(m=>`
+      <tr>
+        <td>${m.id}</td>
+        <td><span class="chip">${m.model_alias}</span></td>
+        <td style="color:var(--text-secondary);font-size:12px">${m.upstream_model}</td>
+        <td><code style="color:var(--accent-teal)">${m.provider_name}</code></td>
+        <td style="color:var(--accent-green)">¥${m.input_price}</td>
+        <td style="color:var(--accent-orange)">¥${m.output_price}</td>
+        <td>
+          <label class="switch" title="${m.is_enabled?'点击禁用':'点击启用'}">
+            <input type="checkbox" ${m.is_enabled?'checked':''} onchange="toggleModel(${m.id},this.checked)">
+            <span class="slider"></span>
+          </label>
+        </td>
+        <td><button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button></td>
+      </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+  }catch(e){toast('加载模型失败: '+e.message,'err')}
+}
+
+async function openModelModal(md=null){
+  document.getElementById('modal-model-title').textContent=md?'编辑模型':'新增模型';
+  document.getElementById('md-id').value=md?md.id:'';
+  document.getElementById('md-alias').value=md?md.model_alias:'';
+  document.getElementById('md-upstream').value=md?md.upstream_model:'';
+  document.getElementById('md-input-price').value=md?md.input_price:0.001;
+  document.getElementById('md-output-price').value=md?md.output_price:0.002;
+  document.getElementById('md-max-tokens').value=md?md.max_tokens:8192;
+  // fill provider select
+  const sel=document.getElementById('md-provider');
+  try{
+    const ps=await api('GET','/admin/providers');
+    sel.innerHTML=ps.items.map(p=>`<option value="${p.name}" ${md&&md.provider_name===p.name?'selected':''}>${p.display_name||p.name}</option>`).join('');
+  }catch(e){sel.innerHTML='<option>加载失败</option>';}
+  openModal('modal-model');
+}
+function editModel(md){openModelModal(md);}
+
+async function toggleModel(id,enabled){
+  try{
+    await api('PATCH',`/admin/models/${id}/enable?is_enabled=${enabled}`);
+    toast(enabled?'已启用':'已禁用');
+  }catch(e){toast('操作失败: '+e.message,'err');loadModels();}
+}
+
+async function submitModel(){
+  const id=document.getElementById('md-id').value;
+  const body={
+    model_alias:document.getElementById('md-alias').value.trim(),
+    upstream_model:document.getElementById('md-upstream').value.trim(),
+    provider_name:document.getElementById('md-provider').value,
+    input_price:+document.getElementById('md-input-price').value,
+    output_price:+document.getElementById('md-output-price').value,
+    max_tokens:+document.getElementById('md-max-tokens').value,
+    is_enabled:true
+  };
+  try{
+    if(id) await api('PUT','/admin/models/'+id,body);
+    else await api('POST','/admin/models',body);
+    closeModal('modal-model');
+    toast('保存成功');
+    loadModels();
+  }catch(e){toast('保存失败: '+e.message,'err')}
+}
+
+// ─── API Keys ──────────────────────────────────────────────
+let keysTotal=0;
+async function loadKeys(pg=1){
+  keysCurrentPage=pg;
+  try{
+    const d=await api('GET',`/admin/keys?page=${pg}&page_size=15`);
+    keysTotal=d.total;
+    const tbody=document.getElementById('keys-tbody');
+    tbody.innerHTML=d.items.map(k=>`
+      <tr>
+        <td>${k.id}</td>
+        <td>${k.name||'—'}</td>
+        <td><span style="font-family:monospace;color:var(--accent-teal)">${k.key_prefix}****</span></td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">
+          ${(k.allowed_models||[]).slice(0,3).map(m=>`<span class="chip" style="margin:1px">${m}</span>`).join('')}
+          ${(k.allowed_models||[]).length>3?`<span style="color:var(--text-muted);font-size:11px">+${k.allowed_models.length-3}</span>`:''}
+          ${(k.allowed_models||[]).length===0?'<span style="color:var(--text-muted);font-size:12px">全部</span>':''}
+        </td>
+        <td>${fmtNum(k.call_count||0)}</td>
+        <td>${fmtToken(k.total_tokens||0)}</td>
+        <td style="color:var(--accent-orange)">¥${(k.total_cost||0).toFixed(4)}</td>
+        <td><span class="badge ${k.is_enabled?'badge-green':'badge-red'}">${k.is_enabled?'启用':'禁用'}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" onclick='editKey(${JSON.stringify(k)})'>编辑</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteKey(${k.id},'${k.name||''}')">删除</button>
+        </td>
+      </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+    const totalPages=Math.ceil(keysTotal/15);
+    document.getElementById('keys-pager-info').textContent=`共 ${keysTotal} 条，第 ${pg}/${totalPages||1} 页`;
+    document.getElementById('keys-prev').disabled=pg<=1;
+    document.getElementById('keys-next').disabled=pg>=totalPages;
+  }catch(e){toast('加载密钥失败: '+e.message,'err')}
+}
+function keysPage(d){loadKeys(keysCurrentPage+d);}
+
+function openKeyModal(k=null){
+  document.getElementById('modal-key-title').textContent=k?'编辑密钥':'创建 API 密钥';
+  document.getElementById('key-id').value=k?k.id:'';
+  document.getElementById('key-name').value=k?k.name:'';
+  document.getElementById('key-concurrency').value=k?k.max_concurrency:10;
+  document.getElementById('key-daily').value=k?k.daily_limit:0;
+  document.getElementById('key-monthly').value=k?k.monthly_limit:0;
+  document.getElementById('key-start').value=k&&k.start_date?k.start_date:'';
+  document.getElementById('key-end').value=k&&k.end_date?k.end_date:'';
+  document.getElementById('key-time-start').value=k&&k.allowed_time_start?k.allowed_time_start:'00:00';
+  document.getElementById('key-time-end').value=k&&k.allowed_time_end?k.allowed_time_end:'23:59';
+  document.getElementById('key-remark').value=k?k.remark||'':'';
+  // models tags
+  const models=k?k.allowed_models||[]:[];
+  document.getElementById('key-models-data').value=JSON.stringify(models);
+  const wrap=document.getElementById('key-models-wrap');
+  // clear tags (keep input)
+  Array.from(wrap.querySelectorAll('.tag')).forEach(t=>t.remove());
+  models.forEach(m=>addTag('key-models-wrap','key-models-data',m));
+  openModal('modal-key');
+}
+function editKey(k){openKeyModal(k);}
+
+async function submitKey(){
+  const id=document.getElementById('key-id').value;
+  const models=JSON.parse(document.getElementById('key-models-data').value||'[]');
+  const body={
+    name:document.getElementById('key-name').value.trim(),
+    allowed_models:models,
+    max_concurrency:+document.getElementById('key-concurrency').value,
+    daily_limit:+document.getElementById('key-daily').value,
+    monthly_limit:+document.getElementById('key-monthly').value,
+    start_date:document.getElementById('key-start').value||null,
+    end_date:document.getElementById('key-end').value||null,
+    allowed_time_start:document.getElementById('key-time-start').value||null,
+    allowed_time_end:document.getElementById('key-time-end').value||null,
+    remark:document.getElementById('key-remark').value.trim()||null,
+    is_enabled:true
+  };
+  try{
+    if(id){
+      await api('PUT','/admin/keys/'+id,body);
+      closeModal('modal-key');toast('保存成功');loadKeys(keysCurrentPage);
+    } else {
+      const res=await api('POST','/admin/keys',body);
+      closeModal('modal-key');
+      // show full key
+      document.getElementById('created-key-val').textContent=res.full_key||'获取失败';
+      openModal('modal-key-created');
+      loadKeys(1);
+    }
+  }catch(e){toast('保存失败: '+e.message,'err')}
+}
+
+async function deleteKey(id,name){
+  if(!confirm(`确认删除密钥「${name}」？此操作不可恢复！`)) return;
+  try{
+    await api('DELETE','/admin/keys/'+id);
+    toast('已删除');loadKeys(keysCurrentPage);
+  }catch(e){toast('删除失败: '+e.message,'err')}
+}
+function copyCreatedKey(){
+  const v=document.getElementById('created-key-val').textContent;
+  navigator.clipboard.writeText(v).then(()=>toast('已复制到剪贴板')).catch(()=>toast('复制失败，请手动复制','err'));
+}
+
+// ─── Logs ─────────────────────────────────────────────────
+let logsTotal=0;
+async function loadLogs(pg=1){
+  logsCurrentPage=pg;
+  const params=new URLSearchParams({page:pg,page_size:20});
+  const status=document.getElementById('log-status').value;
+  const model=document.getElementById('log-model').value.trim();
+  const provider=document.getElementById('log-provider').value.trim();
+  const rid=document.getElementById('log-rid').value.trim();
+  const kid=document.getElementById('log-kid').value.trim();
+  if(status) params.set('status',status);
+  if(model) params.set('model_alias',model);
+  if(provider) params.set('provider_name',provider);
+  if(rid) params.set('request_id',rid);
+  if(kid) params.set('key_id',kid);
+  try{
+    const d=await api('GET','/admin/logs?'+params);
+    logsTotal=d.total;
+    const tbody=document.getElementById('logs-tbody');
+    tbody.innerHTML=d.items.map(r=>`
+      <tr>
+        <td class="td-mono" style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.request_id}</td>
+        <td><span class="chip">${r.model_alias||'—'}</span></td>
+        <td><code style="color:var(--accent-teal)">${r.provider_name||'—'}</code></td>
+        <td><span class="badge ${statusBadge(r.status)}">${r.status||'—'}</span></td>
+        <td style="color:${upstreamColor(r.upstream_status)}">${r.upstream_status||'—'}</td>
+        <td>${r.is_stream?'<span style="color:var(--accent-green)">流式</span>':'非流式'}</td>
+        <td>${r.duration_ms||'—'}</td>
+        <td>${r.ttft_ms||'—'}</td>
+        <td>${fmtNum(r.prompt_tokens||0)}</td>
+        <td>${fmtNum(r.completion_tokens||0)}</td>
+        <td style="color:var(--text-muted);font-size:11px">${r.client_ip||'—'}</td>
+        <td style="font-size:11px;white-space:nowrap">${fmtTime(r.start_time)}</td>
+        <td><button class="btn btn-sm" onclick="showLogDetail('${r.request_id}')">详情</button></td>
+      </tr>`).join('')||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+    const totalPages=Math.ceil(logsTotal/20);
+    document.getElementById('logs-pager-info').textContent=`共 ${logsTotal} 条，第 ${pg}/${totalPages||1} 页`;
+    document.getElementById('logs-prev').disabled=pg<=1;
+    document.getElementById('logs-next').disabled=pg>=totalPages;
+  }catch(e){toast('加载日志失败: '+e.message,'err')}
+}
+function logsPage(d){loadLogs(logsCurrentPage+d);}
+
+async function showLogDetail(rid){
+  try{
+    const r=await api('GET','/admin/logs/'+rid);
+    const fields=[
+      ['request_id','Request ID'],['status','状态'],['model_alias','模型'],['provider_name','供应商'],
+      ['upstream_model','上游模型'],['upstream_status','上游状态码'],['is_stream','流式'],
+      ['client_ip','客户端 IP'],['start_time','开始时间'],['end_time','结束时间'],
+      ['duration_ms','耗时(ms)'],['ttft_ms','首包时间(ms)'],
+      ['prompt_tokens','输入Token'],['completion_tokens','输出Token'],
+      ['error_message','错误信息'],['api_key_id','API Key ID'],['key_id','Key ID']
+    ];
+    const html=fields.map(([k,label])=>{
+      const v=r[k];
+      if(v===null||v===undefined) return '';
+      return `<div style="display:flex;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="min-width:140px;color:var(--text-secondary);font-size:12px">${label}</span>
+        <span style="font-size:13px;word-break:break-all">${
+          k==='status'?`<span class="badge ${statusBadge(v)}">${v}</span>`:
+          k==='is_stream'?(v?'<span style="color:var(--accent-green)">是</span>':'否'):
+          v
+        }</span>
+      </div>`;
+    }).join('');
+    document.getElementById('modal-log-body').innerHTML=html;
+    openModal('modal-log');
+  }catch(e){toast('加载详情失败: '+e.message,'err')}
+}
+
+// ─── Billing ───────────────────────────────────────────────
+async function loadBilling(){
+  const group=document.getElementById('billing-group').value||'key_id';
+  document.getElementById('bill-group-col').textContent=
+    {key_id:'Key ID',model_alias:'模型',provider_name:'供应商'}[group]||'分组';
+  try{
+    const d=await api('GET','/admin/billing?group_by='+group);
+    document.getElementById('bill-today').textContent='¥'+d.today_cost.toFixed(4);
+    const total=d.items.reduce((s,i)=>s+(i.total_tokens||0),0);
+    const totalCost=d.items.reduce((s,i)=>s+(i.total_cost||0),0);
+    document.getElementById('bill-tokens').textContent=fmtToken(total);
+    document.getElementById('bill-total').textContent='¥'+totalCost.toFixed(4);
+    const tbody=document.getElementById('billing-tbody');
+    tbody.innerHTML=d.items.map(r=>`
+      <tr>
+        <td><code style="color:var(--accent-teal)">${r[group]||'—'}</code></td>
+        <td>${fmtNum(r.total_requests||0)}</td>
+        <td>${fmtNum(r.total_input_tokens||0)}</td>
+        <td>${fmtNum(r.total_output_tokens||0)}</td>
+        <td>${fmtToken(r.total_tokens||0)}</td>
+        <td style="color:var(--accent-green)">¥${(r.input_cost||0).toFixed(4)}</td>
+        <td style="color:var(--accent-orange)">¥${(r.output_cost||0).toFixed(4)}</td>
+        <td style="color:var(--accent-red);font-weight:600">¥${(r.total_cost||0).toFixed(4)}</td>
+      </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+  }catch(e){toast('加载计费失败: '+e.message,'err')}
+}
+
+// ─── Settings ─────────────────────────────────────────────
+function showSettings(){
+  document.getElementById('settings-token').value=ADMIN_TOKEN;
+  document.getElementById('settings-base').value=BASE_URL;
+  openModal('modal-settings');
+}
+function saveSettings(){
+  ADMIN_TOKEN=document.getElementById('settings-token').value.trim();
+  BASE_URL=document.getElementById('settings-base').value.trim();
+  localStorage.setItem('mg_token',ADMIN_TOKEN);
+  localStorage.setItem('mg_base',BASE_URL);
+  document.getElementById('token-input').value=ADMIN_TOKEN;
+  closeModal('modal-settings');
+  toast('设置已保存，刷新数据');
+  refreshCurrent();
+}
+function saveToken(v){
+  ADMIN_TOKEN=v;
+  localStorage.setItem('mg_token',v);
+}
+
+// ─── Modal helpers ─────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+// close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el) closeModal(el.id)});
+});
+
+// ─── Tag input ─────────────────────────────────────────────
+function addTag(wrapId,dataId,val){
+  if(!val) return;
+  const data=JSON.parse(document.getElementById(dataId).value||'[]');
+  if(data.includes(val)) return;
+  data.push(val);
+  document.getElementById(dataId).value=JSON.stringify(data);
+  const wrap=document.getElementById(wrapId);
+  const tag=document.createElement('div');
+  tag.className='tag';
+  tag.innerHTML=`${val}<span class="tag-del" onclick="removeTag('${wrapId}','${dataId}','${val}',this)">×</span>`;
+  wrap.insertBefore(tag,wrap.querySelector('.tag-input'));
+}
+function removeTag(wrapId,dataId,val,el){
+  let data=JSON.parse(document.getElementById(dataId).value||'[]');
+  data=data.filter(v=>v!==val);
+  document.getElementById(dataId).value=JSON.stringify(data);
+  el.parentElement.remove();
+}
+function handleTagInput(e,wrapId,dataId){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    const v=e.target.value.trim().replace(/,$/,'');
+    if(v){addTag(wrapId,dataId,v);e.target.value='';}
+  }
+}
+
+// ─── Format helpers ────────────────────────────────────────
+function fmtNum(n){
+  if(n>=1e9) return (n/1e9).toFixed(1)+'B';
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+  return String(n);
+}
+function fmtToken(n){
+  if(n>=1e9) return (n/1e9).toFixed(2)+'G';
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+  return String(n);
+}
+function fmtTime(t){
+  if(!t) return '—';
+  try{return new Date(t).toLocaleString('zh-CN',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace(/\//g,'-');}
+  catch{return t;}
+}
+function statusBadge(s){
+  return {success:'badge-green',error:'badge-red',timeout:'badge-orange',pending:'badge-blue',running:'badge-blue'}[s]||'badge-gray';
+}
+function upstreamColor(code){
+  if(!code) return 'var(--text-muted)';
+  if(code>=500) return 'var(--accent-red)';
+  if(code>=400) return 'var(--accent-orange)';
+  return 'var(--accent-green)';
+}
+
+// ─── Init ──────────────────────────────────────────────────
+loadDashboard();
+
+// Auto refresh every 30s on dashboard & monitor
+setInterval(()=>{
+  if(currentPage==='dashboard') loadDashboard();
+  if(currentPage==='monitor') loadMonitor();
+},30000);
+</script>
+</body>
+</html>

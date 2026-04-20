@@ -4,11 +4,13 @@ FastAPI + asyncio + aiohttp，OpenAI 兼容网关
 """
 import logging
 import sys
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from core.config import settings
 from db.database import init_db_pool, close_db_pool
@@ -99,17 +101,27 @@ async def health():
 
 @app.get("/")
 async def root():
-    return {
-        "service": "AI Model Gateway",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "openai_compatible": True,
-        "endpoints": {
-            "chat": "/v1/chat/completions",
-            "models": "/v1/models",
-            "admin": "/admin/overview",
-        },
-    }
+    """根路由重定向到管理界面"""
+    return RedirectResponse(url="/ui/")
+
+
+@app.get("/ui/")
+@app.get("/ui")
+async def admin_ui():
+    """管理后台前端入口"""
+    static_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    if os.path.exists(static_file):
+        return FileResponse(static_file)
+    return JSONResponse(
+        status_code=404,
+        content={"error": "前端文件不存在，请确认 static/index.html 已生成"},
+    )
+
+
+# ── 静态文件服务（放在所有路由之后）───────────────────────────
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(_static_dir):
+    app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 
 # ── 入口 ──────────────────────────────────────────────────────

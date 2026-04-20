@@ -1,0 +1,322 @@
+"""
+api/v1/chat.py — /v1/chat/completions OpenAI 兼容接口
+完整实现：认证 → 时段校验 → 限流 → 路由 → 生命周期追踪 → 计费
+"""
+from __future__ import annotations
+import json
+import logging
+import asyncio
+from typing import AsyncGenerator, Optional
+from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi.responses import StreamingResponse, JSONResponse
+
+from middleware.auth import authenticate_request
+from middleware.time_control import check_time_access
+from core.limiter import ConcurrencyGuard, RateLimitExceeded
+from core.utils import new_request_id, now_ms, calc_duration_ms, sse_done
+from models.openai_models import ChatCompletionRequest, ChatCompletionResponse
+from models.db_models import ApiKeyRow
+from crud.request_logs import (
+    create_request_log, update_log_running,
+    update_log_success, update_log_error,
+)
+from crud.billing import create_billing_record
+from crud.api_keys import increment_key_stats
+from crud.models import get_model_by_alias
+from crud.providers import get_provider_by_name
+from providers.registry import get_provider
+from providers.base import ProviderException, TimeoutException
+
+logger = logging.getLogger("gateway.chat")
+router = APIRouter()
+
+
+@router.post("/v1/chat/completions")
+async def chat_completions(
+    request: Request,
+    body: ChatCompletionRequest,
+    key_row: ApiKeyRow = Depends(authenticate_request),
+):
+    """
+    OpenAI 兼容 /v1/chat/completions 接口
+    支持 stream / non-stream
+    """
+    # ── 1. 时段访问控制 ────────────────────────────────────────
+    check_time_access(key_row)
+
+    # ── 2. 模型白名单校验 ──────────────────────────────────────
+    model_alias = body.model
+    if model_alias not in key_row.allowed_models:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": {
+                    "message": f"模型 '{model_alias}' 不在该 Key 的访问白名单中",
+                    "type": "permission_error",
+                    "code": "model_not_allowed",
+                }
+            },
+        )
+
+    # ── 3. 查找模型映射 ─────────────────────────────────────────
+    model_row = await get_model_by_alias(model_alias)
+    if not model_row:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "message": f"模型 '{model_alias}' 不存在或已禁用",
+                    "type": "invalid_request_error",
+                }
+            },
+        )
+
+    provider_name = model_row["provider_name"]
+    upstream_model = model_row["upstream_model"]
+
+    # ── 4. 查找厂商获取并发配置 ────────────────────────────────
+    provider_row = await get_provider_by_name(provider_name)
+    if not provider_row or not provider_row.get("is_enabled"):
+        raise HTTPException(status_code=503, detail={"error": {"message": "上游厂商不可用"}})
+
+    provider_max_concurrency = provider_row.get("max_concurrency", 50)
+
+    # ── 5. 创建请求日志（pending）────────────────────────────────
+    request_id = new_request_id()
+    client_ip = request.client.host if request.client else "unknown"
+    is_stream = bool(body.stream)
+
+    await create_request_log(
+        request_id=request_id,
+        api_key_id=key_row.id,
+        key_id=key_row.key_id,
+        model_alias=model_alias,
+        is_stream=is_stream,
+        client_ip=client_ip,
+    )
+
+    # ── 6. 三级并发限流 ─────────────────────────────────────────
+    start_ms = now_ms()
+    try:
+        guard = ConcurrencyGuard(
+            key_id=key_row.key_id,
+            key_max_concurrency=key_row.max_concurrency,
+            provider_name=provider_name,
+            provider_max_concurrency=provider_max_concurrency,
+        )
+    except Exception:
+        pass  # 构造不会异常
+
+    try:
+        async with guard:
+            # 更新状态为 running
+            await update_log_running(request_id, provider_name, upstream_model)
+
+            # 获取厂商适配器
+            provider = await get_provider(provider_name)
+
+            if is_stream:
+                # ── 流式处理 ──────────────────────────────────
+                return StreamingResponse(
+                    _stream_generator(
+                        request_id=request_id,
+                        provider=provider,
+                        body=body,
+                        upstream_model=upstream_model,
+                        model_alias=model_alias,
+                        provider_name=provider_name,
+                        key_row=key_row,
+                        model_row=model_row,
+                        start_ms=start_ms,
+                    ),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "X-Accel-Buffering": "no",
+                        "X-Request-Id": request_id,
+                    },
+                )
+            else:
+                # ── 非流式处理 ────────────────────────────────
+                result = await provider.chat_completion(body, upstream_model)
+                duration_ms = calc_duration_ms(start_ms)
+
+                usage = result.usage
+                await update_log_success(
+                    request_id=request_id,
+                    upstream_status=200,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    ttft_ms=None,
+                    duration_ms=duration_ms,
+                )
+
+                # 计费
+                bill = await create_billing_record(
+                    request_id=request_id,
+                    api_key_id=key_row.id,
+                    key_id=key_row.key_id,
+                    model_alias=model_alias,
+                    provider_name=provider_name,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    input_price=float(model_row["input_price"]),
+                    output_price=float(model_row["output_price"]),
+                )
+                await increment_key_stats(key_row.id, bill["total_tokens"], bill["total_cost"])
+
+                # 覆盖返回的 model 名为客户端请求的别名
+                result.model = model_alias
+                return JSONResponse(
+                    content=result.model_dump(),
+                    headers={"X-Request-Id": request_id},
+                )
+
+    except RateLimitExceeded as e:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, None, f"Rate limited: {e.level}", duration_ms)
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": {
+                    "message": f"并发限流（{e.level}）超出限制，请稍后重试",
+                    "type": "rate_limit_error",
+                    "code": "rate_limit_exceeded",
+                }
+            },
+        )
+    except TimeoutException:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, 0, "Request timeout", duration_ms, is_timeout=True)
+        raise HTTPException(
+            status_code=504,
+            detail={"error": {"message": "上游请求超时", "type": "timeout_error"}},
+        )
+    except ProviderException as e:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, e.upstream_status, str(e), duration_ms)
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error": {"message": str(e), "type": "upstream_error"}},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, None, str(e), duration_ms)
+        logger.exception("[%s] 未知错误: %s", request_id, e)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": {"message": "内部服务错误", "type": "internal_error"}},
+        )
+
+
+async def _stream_generator(
+    request_id: str,
+    provider,
+    body: ChatCompletionRequest,
+    upstream_model: str,
+    model_alias: str,
+    provider_name: str,
+    key_row: ApiKeyRow,
+    model_row: dict,
+    start_ms: int,
+) -> AsyncGenerator[bytes, None]:
+    """
+    流式 SSE 生成器
+    - 转发上游 SSE 行
+    - 追踪 TTFT（首包时间）
+    - 解析 usage 计费
+    - 更新生命周期日志
+    """
+    ttft_ms: Optional[int] = None
+    prompt_tokens = 0
+    completion_tokens = 0
+    upstream_status = 200
+    error_msg: Optional[str] = None
+    is_error = False
+    first_chunk = True
+
+    try:
+        stream_gen = await provider.chat_completion(body, upstream_model)
+
+        async for raw_line in stream_gen:
+            # 计算 TTFT（第一个实际 data 行）
+            if first_chunk and raw_line.startswith("data:"):
+                ttft_ms = calc_duration_ms(start_ms)
+                first_chunk = False
+
+            # 解析 usage（最后一个 chunk 可能包含 usage）
+            if raw_line.startswith("data:") and not raw_line.startswith("data: [DONE]"):
+                try:
+                    chunk_str = raw_line[5:].strip()
+                    chunk = json.loads(chunk_str)
+                    usage = chunk.get("usage")
+                    if usage:
+                        prompt_tokens = usage.get("prompt_tokens", prompt_tokens)
+                        completion_tokens = usage.get("completion_tokens", completion_tokens)
+                    # 替换 chunk 中的 model 为客户端别名
+                    chunk["model"] = model_alias
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n".encode("utf-8")
+                    continue
+                except Exception:
+                    pass  # 解析失败则原样透传
+
+            yield f"{raw_line}\n\n".encode("utf-8") if not raw_line.endswith("\n") else raw_line.encode("utf-8")
+
+        # 发送 [DONE]
+        yield b"data: [DONE]\n\n"
+
+    except TimeoutException:
+        is_error = True
+        upstream_status = 0
+        error_msg = "Request timeout"
+        yield b"data: {\"error\": {\"message\": \"\\u4e0a\\u6e38\\u8bf7\\u6c42\\u8d85\\u65f6\", \"type\": \"timeout_error\"}}\n\n"
+
+    except ProviderException as e:
+        is_error = True
+        upstream_status = e.upstream_status
+        error_msg = str(e)
+        err_json = json.dumps(
+            {"error": {"message": str(e), "type": "upstream_error"}},
+            ensure_ascii=False
+        )
+        yield f"data: {err_json}\n\n".encode("utf-8")
+
+    except Exception as e:
+        is_error = True
+        upstream_status = 0
+        error_msg = str(e)
+        logger.exception("[%s] 流式异常: %s", request_id, e)
+        yield b"data: {\"error\": {\"message\": \"\\u5185\\u90e8\\u670d\\u52a1\\u5668\\u9519\\u8bef\", \"type\": \"internal_error\"}}\n\n"
+
+    finally:
+        # 更新生命周期日志
+        duration_ms = calc_duration_ms(start_ms)
+        if is_error:
+            await update_log_error(
+                request_id, upstream_status, error_msg or "stream error",
+                duration_ms, is_timeout=(upstream_status == 0 and error_msg == "Request timeout")
+            )
+        else:
+            await update_log_success(
+                request_id=request_id,
+                upstream_status=upstream_status,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                ttft_ms=ttft_ms,
+                duration_ms=duration_ms,
+            )
+            if prompt_tokens + completion_tokens > 0:
+                bill = await create_billing_record(
+                    request_id=request_id,
+                    api_key_id=key_row.id,
+                    key_id=key_row.key_id,
+                    model_alias=model_alias,
+                    provider_name=provider_name,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    input_price=float(model_row["input_price"]),
+                    output_price=float(model_row["output_price"]),
+                )
+                await increment_key_stats(key_row.id, bill["total_tokens"], bill["total_cost"])

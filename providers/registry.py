@@ -14,6 +14,7 @@ from providers.xiaomi import XiaomiProvider
 from providers.siliconflow import SiliconFlowProvider
 from providers.modelscope import ModelScopeProvider
 from providers.coze import CozeProvider
+from providers.dify import DifyProvider
 from core.security import decrypt_api_key
 from crud.providers import get_provider_by_name
 
@@ -28,6 +29,7 @@ _PROVIDER_CLASS_MAP: dict[str, type[BaseProvider]] = {
     "siliconflow": SiliconFlowProvider,
     "modelscope":  ModelScopeProvider,
     "coze":        CozeProvider,
+    "dify":        DifyProvider,
 }
 
 

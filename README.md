@@ -19,6 +19,7 @@ Model Gateway 是一个基于 FastAPI + asyncio + aiohttp 构建的**生产级�
 
 - **OpenAI 兼容接口**：对外完全兼容 OpenAI `/v1/chat/completions` 规范
 - **多厂商路由**：DeepSeek、MiniMax、GLM、小米、硅基流动、魔塔社区
+- **智能体支持**：支持coze、dify创建的智能体
 - **异步三级限流**：全局并发 / API Key 并发 / 厂商并发
 - **完整生命周期追踪**：pending→running→success/error/timeout
 - **API Key 权限管理**：模型白名单、时段控制、有效期
@@ -143,4 +144,3 @@ curl http://localhost:8000/v1/chat/completions \
         <td><img src="static/images/6.png"/></td>
     </tr>
 </table>
-

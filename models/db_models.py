@@ -69,10 +69,20 @@ class ApiKeyRow(BaseModel):
 
     @classmethod
     def from_row(cls, row: dict) -> "ApiKeyRow":
-        """从 DB 原始字典构造，处理 JSON 字段"""
+        """从 DB 原始字典构造，处理 JSON / MySQL TIME 列"""
+        row = dict(row)
+        # allowed_models: JSON 列
         if isinstance(row.get("allowed_models"), str):
-            row = dict(row)
             row["allowed_models"] = json.loads(row["allowed_models"])
+        # MySQL TIME 列返回 timedelta，Pydantic 的 time 类型无法接受，转为 HH:MM:SS 字符串
+        for time_field in ("allowed_time_start", "allowed_time_end"):
+            val = row.get(time_field)
+            if val is not None:
+                # timedelta → "HH:MM:SS"
+                row[time_field] = str(val)
+        # allowed_weekdays 为 None 时使用默认值
+        if row.get("allowed_weekdays") is None:
+            row["allowed_weekdays"] = "1,2,3,4,5,6,7"
         return cls(**row)
 
     class Config:

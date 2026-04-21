@@ -18,6 +18,13 @@ async def create_api_key(data: ApiKeyCreate) -> tuple[ApiKeyRow, str]:
     full_key, key_id, key_prefix = generate_gateway_key()
     key_hash = hash_gateway_key(full_key)
 
+    # allowed_weekdays: 前端传数组 [1,2,3] 或字符串 "1,2,3"，统一转为逗号字符串
+    raw_wd = data.allowed_weekdays
+    if isinstance(raw_wd, (list, tuple)):
+        weekdays_str = ",".join(str(w) for w in raw_wd)
+    else:
+        weekdays_str = str(raw_wd) if raw_wd else "1,2,3,4,5,6,7"
+
     sql = """
     INSERT INTO api_keys (
         key_id, key_hash, key_prefix, name, allowed_models,
@@ -30,7 +37,7 @@ async def create_api_key(data: ApiKeyCreate) -> tuple[ApiKeyRow, str]:
         key_id, key_hash, key_prefix, data.name,
         json.dumps(data.allowed_models, ensure_ascii=False),
         data.max_concurrency, data.daily_limit, data.monthly_limit,
-        data.start_date, data.end_date, data.allowed_weekdays,
+        data.start_date, data.end_date, weekdays_str,
         data.allowed_time_start, data.allowed_time_end, data.remark,
     )
     async with DBHelper() as db:
@@ -93,7 +100,10 @@ async def update_api_key(key_db_id: int, data: ApiKeyUpdate) -> Optional[ApiKeyR
     if data.end_date is not None:
         updates["end_date"] = data.end_date
     if data.allowed_weekdays is not None:
-        updates["allowed_weekdays"] = data.allowed_weekdays
+        wd = data.allowed_weekdays
+        if isinstance(wd, (list, tuple)):
+            wd = ",".join(str(w) for w in wd)
+        updates["allowed_weekdays"] = str(wd)
     if data.allowed_time_start is not None:
         updates["allowed_time_start"] = data.allowed_time_start
     if data.allowed_time_end is not None:

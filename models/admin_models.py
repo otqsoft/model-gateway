@@ -2,9 +2,9 @@
 models/admin_models.py — 管理端请求/响应 Pydantic 模型
 """
 from __future__ import annotations
-from typing import Optional, Any
-from pydantic import BaseModel, Field
-from datetime import datetime, date, time as dtime
+from datetime import date, datetime
+from typing import Optional, Any, Union
+from pydantic import BaseModel, Field, model_validator
 
 
 # ── API Key ──────────────────────────────────────────────────
@@ -22,6 +22,16 @@ class ApiKeyCreate(BaseModel):
     allowed_time_end: Optional[str] = None     # "18:00"
     remark: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_weekdays(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            wd = data.get("allowed_weekdays")
+            if isinstance(wd, (list, tuple)):
+                data = dict(data)
+                data["allowed_weekdays"] = ",".join(str(int(w) if isinstance(w, float) else str(w)) for w in wd)
+        return data
+
 
 class ApiKeyUpdate(BaseModel):
     name: Optional[str] = None
@@ -36,6 +46,16 @@ class ApiKeyUpdate(BaseModel):
     allowed_time_start: Optional[str] = None
     allowed_time_end: Optional[str] = None
     remark: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_weekdays(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            wd = data.get("allowed_weekdays")
+            if isinstance(wd, (list, tuple)):
+                data = dict(data)
+                data["allowed_weekdays"] = ",".join(str(int(w) if isinstance(w, float) else str(w)) for w in wd)
+        return data
 
 
 class ApiKeyOut(BaseModel):

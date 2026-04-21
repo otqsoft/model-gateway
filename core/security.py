@@ -66,9 +66,9 @@ def generate_gateway_key() -> Tuple[str, str, str]:
     返回 (full_key, key_id, key_prefix)
     full_key 形如 sk-xxxxxxxxxxxxxxxxxxxxxx（22位随机）
     """
-    uid = shortuuid.uuid()[:22]
+    uid = shortuuid.uuid()[:21]   # 21位 + "sk-"(3) = 24字符，匹配 DB CHAR(24)
     full_key = f"sk-{uid}"
-    key_id = full_key          # key_id = full_key（CHAR(25)）
+    key_id = full_key          # key_id = full_key（CHAR(24)）
     key_prefix = full_key[:8]  # 前8位用于展示
     return full_key, key_id, key_prefix
 

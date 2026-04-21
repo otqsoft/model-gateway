@@ -15,27 +15,32 @@ router = APIRouter()
 
 
 def _key_to_out(key_row: ApiKeyRow) -> ApiKeyOut:
-    return ApiKeyOut(
-        id=key_row.id,
-        key_id=key_row.key_id,
-        key_prefix=key_row.key_prefix,
-        name=key_row.name,
-        allowed_models=key_row.allowed_models,
-        max_concurrency=key_row.max_concurrency,
-        daily_limit=key_row.daily_limit,
-        monthly_limit=key_row.monthly_limit,
-        is_enabled=key_row.is_enabled,
-        start_date=key_row.start_date,
-        end_date=key_row.end_date,
-        allowed_weekdays=key_row.allowed_weekdays,
-        allowed_time_start=str(key_row.allowed_time_start) if key_row.allowed_time_start else None,
-        allowed_time_end=str(key_row.allowed_time_end) if key_row.allowed_time_end else None,
-        total_tokens=key_row.total_tokens,
-        total_cost=key_row.total_cost,
-        call_count=key_row.call_count,
-        remark=key_row.remark,
-        created_at=key_row.created_at,
-    )
+    try:
+        return ApiKeyOut(
+            id=key_row.id,
+            key_id=key_row.key_id,
+            key_prefix=key_row.key_prefix,
+            name=key_row.name,
+            allowed_models=key_row.allowed_models,
+            max_concurrency=key_row.max_concurrency,
+            daily_limit=key_row.daily_limit,
+            monthly_limit=key_row.monthly_limit,
+            is_enabled=key_row.is_enabled,
+            start_date=key_row.start_date,
+            end_date=key_row.end_date,
+            allowed_weekdays=key_row.allowed_weekdays,
+            allowed_time_start=str(key_row.allowed_time_start) if key_row.allowed_time_start else None,
+            allowed_time_end=str(key_row.allowed_time_end) if key_row.allowed_time_end else None,
+            total_tokens=key_row.total_tokens,
+            total_cost=key_row.total_cost,
+            call_count=key_row.call_count,
+            remark=key_row.remark,
+            created_at=key_row.created_at,
+        )
+    except Exception as exc:
+        import logging
+        logging.getLogger("gateway.keys").exception("构建 ApiKeyOut 失败: %s", exc)
+        raise
 
 
 @router.get("/admin/keys", dependencies=[Depends(authenticate_admin)])

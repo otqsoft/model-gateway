@@ -2,6 +2,7 @@
 models/db_models.py — 数据库行映射 Pydantic 模型
 """
 from __future__ import annotations
+from datetime import timedelta
 from typing import Any, Optional
 from pydantic import BaseModel
 from datetime import datetime, date, time as dtime
@@ -71,15 +72,28 @@ class ApiKeyRow(BaseModel):
     def from_row(cls, row: dict) -> "ApiKeyRow":
         """从 DB 原始字典构造，处理 JSON / MySQL TIME 列"""
         row = dict(row)
-        # allowed_models: JSON 列
-        if isinstance(row.get("allowed_models"), str):
-            row["allowed_models"] = json.loads(row["allowed_models"])
-        # MySQL TIME 列返回 timedelta，Pydantic 的 time 类型无法接受，转为 HH:MM:SS 字符串
+        # allowed_models: JSON 列（可能是 str / bytes / 原始列表）
+        raw = row.get("allowed_models")
+        if isinstance(raw, str):
+            row["allowed_models"] = json.loads(raw) if raw else []
+        elif isinstance(raw, (list, tuple)):
+            row["allowed_models"] = list(raw)
+        else:
+            row["allowed_models"] = []
+        # allowed_time_start / allowed_time_end: MySQL TIME 格式 '0:00:00' → '00:00:00'
+        for tfield in ("allowed_time_start", "allowed_time_end"):
+            val = row.get(tfield)
+            if isinstance(val, str) and val:
+                parts = val.split(":")
+                if len(parts) == 3:
+                    row[tfield] = f"{int(parts[0]):02}:{parts[1]}:{parts[2]}"
+        # MySQL TIME 列返回 timedelta（而非 str），Pydantic 的 time 同样无法接受
+        # 只处理 timedelta 对象：timedelta → "HH:MM:SS"，已为 str 的不覆盖
         for time_field in ("allowed_time_start", "allowed_time_end"):
             val = row.get(time_field)
-            if val is not None:
-                # timedelta → "HH:MM:SS"
-                row[time_field] = str(val)
+            if isinstance(val, timedelta):
+                total_s = int(val.total_seconds())
+                row[time_field] = f"{total_s // 3600:02}:{(total_s % 3600) // 60:02}:{total_s % 60:02}"
         # allowed_weekdays 为 None 时使用默认值
         if row.get("allowed_weekdays") is None:
             row["allowed_weekdays"] = "1,2,3,4,5,6,7"

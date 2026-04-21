@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ModelGate 管理后台</title>
+<title>模型网关-管理后台</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 /* ─── Reset & Base ───────────────────────────────────────── */
@@ -26,6 +26,73 @@
   --sidebar-w:220px;
 }
 body{background:var(--bg-deep);color:var(--text-primary);font-family:'PingFang SC','Microsoft YaHei',sans-serif;font-size:14px;display:flex;height:100vh;overflow:hidden}
+
+/* ─── CheckboxSelect (el-select like) ────────────────────── */
+.checkbox-select{
+  position:relative;width:100%
+}
+.checkbox-select-input{
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px;
+  min-height:38px;padding:5px 30px 5px 8px;
+  background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:6px;cursor:pointer;
+  transition:border-color .15s
+}
+.checkbox-select-input:focus-within{border-color:var(--accent-blue)}
+.checkbox-select-arrow{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--text-secondary);font-size:10px;
+  transition:transform .2s
+}
+.checkbox-select.open .checkbox-select-arrow{transform:translateY(-50%) rotate(180deg)}
+.checkbox-select-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(88,166,255,.15);border:1px solid rgba(88,166,255,.3);
+  color:var(--accent-blue);border-radius:4px;
+  padding:2px 6px;font-size:12px;line-height:1.4;max-width:160px
+}
+.checkbox-select-tag-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.checkbox-select-tag-rm{
+  background:none;border:none;cursor:pointer;color:var(--accent-blue);
+  padding:0;line-height:1;opacity:.7;flex-shrink:0;font-size:14px
+}
+.checkbox-select-tag-rm:hover{opacity:1}
+.checkbox-select-placeholder{color:var(--text-muted);font-size:13px}
+.checkbox-select-dropdown{
+  display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:1000;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  max-height:280px;overflow:hidden
+}
+.checkbox-select.open .checkbox-select-dropdown{display:block}
+.checkbox-select-search-wrap{padding:8px;border-bottom:1px solid var(--border)}
+.checkbox-select-search{
+  width:100%;padding:6px 10px;background:var(--bg-card2);
+  border:1px solid var(--border);border-radius:6px;
+  color:var(--text-primary);font-size:13px;outline:none;
+  box-sizing:border-box
+}
+.checkbox-select-search:focus{border-color:var(--accent-blue)}
+.checkbox-select-header{
+  display:flex;align-items:center;padding:8px 12px;
+  border-bottom:1px solid var(--border);cursor:pointer;user-select:none;
+  font-size:12px;color:var(--text-secondary)
+}
+.checkbox-select-header:hover{background:var(--bg-hover)}
+.checkbox-select-header input[type=checkbox]{margin-right:8px;accent-color:var(--accent-blue)}
+.checkbox-select-list{max-height:200px;overflow-y:auto}
+.checkbox-select-opt{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;
+  font-size:13px;transition:background .1s;user-select:none
+}
+.checkbox-select-opt:hover{background:var(--bg-hover)}
+.checkbox-select-opt input[type=checkbox]{accent-color:var(--accent-blue);flex-shrink:0}
+.checkbox-select-opt-alias{color:var(--text-primary);font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.checkbox-select-opt-provider{
+  font-size:11px;background:rgba(57,208,208,.15);color:var(--accent-teal);
+  border-radius:4px;padding:1px 6px;flex-shrink:0
+}
+.checkbox-select-opt.selected{background:rgba(88,166,255,.08)}
 
 /* ─── Scrollbar ──────────────────────────────────────────── */
 ::-webkit-scrollbar{width:6px;height:6px}
@@ -272,11 +339,8 @@ input:checked + .slider:before{transform:translateX(16px)}
 <!-- ═══════════════ SIDEBAR ═══════════════ -->
 <nav id="sidebar">
   <div class="logo">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#39d0d0" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#39d0d0" stroke-width="1.5" stroke-linejoin="round"/>
-    </svg>
-    ModelGate
+    <img src="/static/images/logo.png" width="24" height="24" alt="ModelGate Logo" style="object-fit: contain;"/>
+    <span>模型网关</span>
   </div>
   <div class="nav-section">
     <div class="nav-item active" data-page="dashboard" onclick="nav(this)">
@@ -698,11 +762,23 @@ input:checked + .slider:before{transform:translateX(16px)}
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">可用模型（回车添加，可留空表示全部）</label>
-        <div class="tag-input-wrap" id="key-models-wrap" onclick="document.getElementById('key-model-input').focus()">
-          <input class="tag-input" id="key-model-input" placeholder="输入模型名后回车" onkeydown="handleTagInput(event,'key-models-wrap','key-models-data')">
+        <label class="form-label">可用模型（可多选，留空表示全部）</label>
+        <div class="checkbox-select" id="key-models-widget">
+          <div class="checkbox-select-input" onclick="toggleModelSelect()">
+            <span class="checkbox-select-placeholder">点击选择模型…</span>
+            <span class="checkbox-select-arrow">&#9662;</span>
+          </div>
+          <div class="checkbox-select-dropdown">
+            <div class="checkbox-select-search-wrap">
+              <input class="checkbox-select-search" placeholder="搜索模型…" oninput="filterModelSelect(this.value)" onkeydown="if(event.key==='Enter')event.preventDefault()">
+            </div>
+            <div class="checkbox-select-header" onclick="toggleModelSelectAll()">
+              <input type="checkbox" id="ms-select-all"><label for="ms-select-all">全选 / 取消全选</label>
+            </div>
+            <div class="checkbox-select-list" id="ms-options-list"></div>
+          </div>
         </div>
-        <input type="hidden" id="key-models-data" value="[]">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">按住 Ctrl/Cmd 可多选，或直接点击选择</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -1270,7 +1346,7 @@ async function loadKeys(pg=1){
 }
 function keysPage(d){loadKeys(keysCurrentPage+d);}
 
-function openKeyModal(k=null){
+async function openKeyModal(k=null){
   document.getElementById('modal-key-title').textContent=k?'编辑密钥':'创建 API 密钥';
   document.getElementById('key-id').value=k?k.id:'';
   document.getElementById('key-name').value=k?k.name:'';
@@ -1282,20 +1358,125 @@ function openKeyModal(k=null){
   document.getElementById('key-time-start').value=k&&k.allowed_time_start?k.allowed_time_start:'00:00';
   document.getElementById('key-time-end').value=k&&k.allowed_time_end?k.allowed_time_end:'23:59';
   document.getElementById('key-remark').value=k?k.remark||'':'';
-  // models tags
-  const models=k?k.allowed_models||[]:[];
-  document.getElementById('key-models-data').value=JSON.stringify(models);
-  const wrap=document.getElementById('key-models-wrap');
-  // clear tags (keep input)
-  Array.from(wrap.querySelectorAll('.tag')).forEach(t=>t.remove());
-  models.forEach(m=>addTag('key-models-wrap','key-models-data',m));
+  // models multi-select: 渲染 checkbox-select
+  const selected=k?(Array.isArray(k.allowed_models)?k.allowed_models:[]):[];
+  try{
+    const md=await api('GET','/admin/models');
+    const items=md&&Array.isArray(md.items)?md.items:[];
+    if(items.length===0){
+      document.getElementById('ms-options-list').innerHTML=
+        '<div style="padding:12px;color:var(--text-muted);font-size:13px;text-align:center">暂无可用模型，请先在模型管理中添加</div>';
+    } else {
+      document.getElementById('ms-options-list').innerHTML=items.map(m=>
+        `<div class="checkbox-select-opt${selected.includes(m.model_alias)?' selected':''}" data-alias="${m.model_alias}" onclick="toggleModelOpt('${m.model_alias.replace(/'/g,"\\'")}')">
+          <input type="checkbox"${selected.includes(m.model_alias)?' checked':''} onclick="event.stopPropagation();toggleModelOpt('${m.model_alias.replace(/'/g,"\\'")}')">
+          <span class="checkbox-select-opt-alias">${m.model_alias}</span>
+          <span class="checkbox-select-opt-provider">${m.provider_name}</span>
+        </div>`
+      ).join('');
+    }
+  }catch(e){
+    document.getElementById('ms-options-list').innerHTML=
+      '<div style="padding:12px;color:var(--accent-red);font-size:13px;text-align:center">加载失败</div>';
+  }
+  refreshModelSelectTags();
   openModal('modal-key');
 }
 function editKey(k){openKeyModal(k);}
 
+// ─── CheckboxSelect helpers ──────────────────────────────
+let _ms_all_opts=[]; // {alias,provider}
+
+function toggleModelSelect(){
+  const w=document.getElementById('key-models-widget');
+  w.classList.toggle('open');
+  if(w.classList.contains('open')){
+    w.querySelector('.checkbox-select-search').focus();
+    document.addEventListener('click',_msClickOutside);
+  }
+}
+
+function _msClickOutside(e){
+  if(!document.getElementById('key-models-widget').contains(e.target))
+    closeModelSelect();
+}
+
+function closeModelSelect(){
+  document.getElementById('key-models-widget').classList.remove('open');
+  document.removeEventListener('click',_msClickOutside);
+}
+
+function toggleModelOpt(alias){
+  const list=document.getElementById('ms-options-list');
+  const opt=list.querySelector(`.checkbox-select-opt[data-alias="${alias}"]`);
+  const cb=opt.querySelector('input[type=checkbox]');
+  cb.checked=!cb.checked;
+  opt.classList.toggle('selected',cb.checked);
+  refreshModelSelectTags();
+  updateSelectAll();
+}
+
+function refreshModelSelectTags(){
+  const list=document.getElementById('ms-options-list');
+  const input=document.querySelector('.checkbox-select-input');
+  const selected=[...list.querySelectorAll('input[type=checkbox]:checked')];
+  // 移除旧 tag（保留 placeholder 和 arrow）
+  input.querySelectorAll('.checkbox-select-tag').forEach(t=>t.remove());
+  const placeholder=input.querySelector('.checkbox-select-placeholder');
+  if(selected.length===0){
+    placeholder.style.display='';
+  } else {
+    placeholder.style.display='none';
+    selected.forEach(cb=>{
+      const alias=cb.closest('.checkbox-select-opt').dataset.alias;
+      const provider=cb.closest('.checkbox-select-opt').querySelector('.checkbox-select-opt-provider').textContent;
+      const tag=document.createElement('span');
+      tag.className='checkbox-select-tag';
+      tag.innerHTML=`<span class="checkbox-select-tag-name" title="${alias}（${provider}）">${alias}</span><button class="checkbox-select-tag-rm" onclick="event.stopPropagation();removeModelOpt('${alias.replace(/'/g,"\\'")}')">&#10005;</button>`;
+      input.insertBefore(tag,input.querySelector('.checkbox-select-arrow'));
+    });
+  }
+}
+
+function removeModelOpt(alias){
+  toggleModelOpt(alias);
+}
+
+function filterModelSelect(q){
+  const lc=q.toLowerCase();
+  document.querySelectorAll('#ms-options-list .checkbox-select-opt').forEach(opt=>{
+    const alias=opt.dataset.alias.toLowerCase();
+    const prov=(opt.querySelector('.checkbox-select-opt-provider')||{}).textContent||'';
+    opt.style.display=(alias.includes(lc)||prov.toLowerCase().includes(lc))?'':'none';
+  });
+}
+
+function toggleModelSelectAll(){
+  const list=document.getElementById('ms-options-list');
+  const visibleOpts=[...list.querySelectorAll('.checkbox-select-opt')].filter(o=>o.style.display!=='none');
+  const allChecked=visibleOpts.every(o=>o.querySelector('input').checked);
+  visibleOpts.forEach(opt=>{
+    opt.querySelector('input').checked=!allChecked;
+    opt.classList.toggle('selected',!allChecked);
+  });
+  refreshModelSelectTags();
+}
+
+function updateSelectAll(){
+  const list=document.getElementById('ms-options-list');
+  const visibleOpts=[...list.querySelectorAll('.checkbox-select-opt')].filter(o=>o.style.display!=='none');
+  const allChecked=visibleOpts.length>0&&visibleOpts.every(o=>o.querySelector('input').checked);
+  document.getElementById('ms-select-all').checked=allChecked;
+}
+
+function getSelectedModels(){
+  return [...document.querySelectorAll('#ms-options-list input[type=checkbox]:checked')]
+    .map(cb=>cb.closest('.checkbox-select-opt').dataset.alias);
+}
+
 async function submitKey(){
   const id=document.getElementById('key-id').value;
-  const models=JSON.parse(document.getElementById('key-models-data').value||'[]');
+  const models=getSelectedModels();
   const body={
     name:document.getElementById('key-name').value.trim(),
     allowed_models:models,

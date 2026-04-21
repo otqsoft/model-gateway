@@ -359,10 +359,10 @@ input:checked + .slider:before{transform:translateX(16px)}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       模型管理
     </div>
-    <div class="nav-item" data-page="agents" onclick="nav(this)">
+    <!-- <div class="nav-item" data-page="agents" onclick="nav(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a5 5 0 015 5c0 2.76-2.24 5-5 5s-5-2.24-5-5a5 5 0 015-5z"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       智能体
-    </div>
+    </div> -->
     <div class="nav-item" data-page="keys" onclick="nav(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
       API 密钥
@@ -450,7 +450,7 @@ input:checked + .slider:before{transform:translateX(16px)}
 
     <!-- ══════════ PAGE: MONITOR ══════════ -->
     <div class="page" id="page-monitor">
-      <div class="grid g4" style="margin-bottom:16px">
+      <div class="grid g3" style="margin-bottom:16px">
         <div class="card">
           <div class="card-title"><span>🔵 供应商使用占比</span></div>
           <div style="height:200px;position:relative"><canvas id="providerPie"></canvas></div>
@@ -466,11 +466,11 @@ input:checked + .slider:before{transform:translateX(16px)}
           <div style="height:200px;position:relative"><canvas id="modelPie"></canvas></div>
           <div id="modelPieLegend" style="margin-top:12px"></div>
         </div>
-        <div class="card">
+        <!-- <div class="card">
           <div class="card-title"><span>🤖 智能体使用占比</span></div>
           <div style="height:200px;position:relative"><canvas id="agentPie"></canvas></div>
           <div id="agentPieLegend" style="margin-top:12px"></div>
-        </div>
+        </div> -->
       </div>
 
       <div class="grid g2" style="margin-bottom:16px">

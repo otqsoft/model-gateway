@@ -158,6 +158,32 @@ INSERT INTO `model_providers` (`name`, `display_name`, `base_url`, `api_key`, `m
 ('modelscope',   '魔塔社区',        'https://dashscope.aliyuncs.com/compatible-mode/v1',      '', 30, 120);
 
 -- ============================================================
+-- 6. 智能体配置表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `agent_configs` (
+  `id`              BIGINT       UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `name`            VARCHAR(128) NOT NULL COMMENT '智能体名称',
+  `agent_type`      VARCHAR(32)  NOT NULL COMMENT '智能体类型: coze / dify / custom',
+  `display_name`    VARCHAR(128) NOT NULL COMMENT '显示名称',
+  `bot_id`          VARCHAR(256)          DEFAULT NULL COMMENT 'Coze Bot ID / Dify App ID',
+  `api_key`         TEXT                  DEFAULT NULL COMMENT 'API Key（加密存储）',
+  `base_url`        VARCHAR(512)          DEFAULT NULL COMMENT '自定义API地址',
+  `description`     VARCHAR(512)          DEFAULT NULL COMMENT '智能体描述',
+  `config`          JSON                  DEFAULT NULL COMMENT '扩展配置（JSON）',
+  `is_enabled`      TINYINT(1)   NOT NULL DEFAULT 1    COMMENT '是否启用',
+  `total_calls`     BIGINT       NOT NULL DEFAULT 0    COMMENT '累计调用次数',
+  `total_tokens`    BIGINT       NOT NULL DEFAULT 0    COMMENT '累计Token',
+  `total_cost`      DECIMAL(14,4)NOT NULL DEFAULT 0.0000 COMMENT '累计费用',
+  `remark`          VARCHAR(255)          DEFAULT NULL COMMENT '备注',
+  `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_name` (`name`),
+  KEY `idx_agent_type` (`agent_type`),
+  KEY `idx_enabled` (`is_enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能体配置';
+
+-- ============================================================
 -- 初始化默认模型映射
 -- ============================================================
 INSERT INTO `model_mapping` (`model_alias`, `provider_name`, `upstream_model`, `input_price`, `output_price`, `max_tokens`, `supports_stream`) VALUES

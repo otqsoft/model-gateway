@@ -213,3 +213,49 @@ class BillingSummary(BaseModel):
     total_tokens: int
     total_cost: float
     request_count: int
+
+
+# ── 智能体管理 ─────────────────────────────────────────────────
+
+class AgentCreate(BaseModel):
+    name: str
+    agent_type: str = Field(description="智能体类型: coze / dify / custom")
+    display_name: str
+    bot_id: Optional[str] = None
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    description: Optional[str] = None
+    config: Optional[dict] = None
+    remark: Optional[str] = None
+
+
+class AgentUpdate(BaseModel):
+    display_name: Optional[str] = None
+    agent_type: Optional[str] = None
+    bot_id: Optional[str] = None
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    description: Optional[str] = None
+    config: Optional[dict] = None
+    is_enabled: Optional[bool] = None
+    remark: Optional[str] = None
+
+
+class AgentOut(BaseModel):
+    id: int
+    name: str
+    agent_type: str
+    display_name: str
+    bot_id: Optional[str]
+    base_url: Optional[str]
+    description: Optional[str]
+    config: Optional[Any]
+    is_enabled: bool
+    total_calls: int
+    total_tokens: int
+    total_cost: float
+    remark: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

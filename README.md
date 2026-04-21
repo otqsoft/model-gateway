@@ -1,8 +1,21 @@
-# AI Model Gateway — 多平台大模型统一网关
+<div align="center">
+	<img src="static/images/logo.png">
+    <p align="center">
+    <img src="https://img.shields.io/badge/python-3.8+-blue.svg" />
+    <img src="https://img.shields.io/badge/FastAPI-0.95+-green.svg" />
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+    <img src="https://img.shields.io/pypi/v/wifi-densepose.svg" />
+	</p>
+	<p>&nbsp;</p>
+</div>
+
+
+
+# Model Gateway 模型网关
 
 ## 项目简介
 
-AI Model Gateway 是一个基于 FastAPI + asyncio + aiohttp 构建的**生产级大模型 API 网关**，提供：
+Model Gateway 是一个基于 FastAPI + asyncio + aiohttp 构建的**生产级大模型 API 网关**，提供：
 
 - **OpenAI 兼容接口**：对外完全兼容 OpenAI `/v1/chat/completions` 规范
 - **多厂商路由**：DeepSeek、MiniMax、GLM、小米、硅基流动、魔塔社区
@@ -12,7 +25,7 @@ AI Model Gateway 是一个基于 FastAPI + asyncio + aiohttp 构建的**生产�
 - **Token 计费**：按模型配置单价，自动统计费用
 - **管理端 REST API**：总览、监控、配置、错误分析
 
----
+
 
 ## 项目结构
 
@@ -65,7 +78,7 @@ model-gateway/
     └── time_control.py        # 时段访问控制
 ```
 
----
+
 
 ## 快速启动
 
@@ -73,6 +86,8 @@ model-gateway/
 
 ```bash
 pip install -r requirements.txt
+# 或使用uv创建
+uv sync
 ```
 
 ### 2. 初始化数据库
@@ -92,17 +107,13 @@ cp .env.example .env
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# 或
+uv run uvicorn main:app --reload
 ```
 
 ### 5. 调用示例
 
 ```bash
-# 创建 API Key（管理端）
-curl -X POST http://localhost:8000/admin/keys \
-  -H "X-Admin-Token: your-admin-token" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"test-key","allowed_models":["gpt-3.5-turbo","deepseek-chat"]}'
-
 # 调用对话接口（OpenAI 兼容）
 curl http://localhost:8000/v1/chat/completions \
   -H "Authorization: Bearer sk-xxxxxx" \
@@ -114,46 +125,22 @@ curl http://localhost:8000/v1/chat/completions \
   }'
 ```
 
----
 
-## 并发限流说明
 
-| 层级 | 参数 | 默认值 | 说明 |
-|------|------|--------|------|
-| 全局 | `GLOBAL_MAX_CONCURRENCY` | 200 | 所有请求总并发 |
-| API Key | `KEY_MAX_CONCURRENCY` | 20 | 单 Key 最大并发 |
-| 厂商 | 各厂商配置 | 50 | 单厂商最大并发 |
+## 演示图
 
-超过限制返回 HTTP 429，并记录限流日志。
+<table>
+    <tr>
+        <td><img src="static/images/1.png"/></td>
+        <td><img src="static/images/2.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/3.png"/></td>
+        <td><img src="static/images/4.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/5.png"/></td>
+        <td><img src="static/images/6.png"/></td>
+    </tr>
+</table>
 
----
-
-## 支持厂商
-
-| 厂商 | model 前缀/名称示例 |
-|------|---------------------|
-| DeepSeek | `deepseek-chat`, `deepseek-coder` |
-| MiniMax | `abab6.5-chat`, `abab5.5-chat` |
-| GLM（智谱） | `glm-4`, `glm-3-turbo` |
-| 小米 | `xiaomi-*` |
-| 硅基流动 | `Qwen/Qwen2-7B-Instruct` 等 |
-| 魔塔社区 | `modelscope/*` |
-
----
-
-## 管理端 API 清单
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/admin/overview` | 总览统计 |
-| GET | `/admin/monitor/status` | 实时状态分布 |
-| GET | `/admin/monitor/latency` | 耗时分布 |
-| GET | `/admin/keys` | Key 列表 |
-| POST | `/admin/keys` | 创建 Key |
-| PUT | `/admin/keys/{id}` | 更新 Key |
-| DELETE | `/admin/keys/{id}` | 删除 Key |
-| GET | `/admin/providers` | 厂商列表 |
-| POST | `/admin/providers` | 添加厂商 |
-| GET | `/admin/logs` | 请求日志查询 |
-| GET | `/admin/logs/{request_id}` | 单条日志详情 |
-| GET | `/admin/billing` | 计费汇总 |

@@ -134,7 +134,9 @@ class ModelMappingCreate(BaseModel):
     output_price: float = 0.0
     max_tokens: int = 4096
     supports_stream: bool = True
+    is_enabled: bool = True
     description: Optional[str] = None
+    extra_headers: Optional[dict] = None   # Coze 等厂商的额外参数（如 bot_id）
 
 
 class ModelMappingOut(BaseModel):
@@ -148,6 +150,7 @@ class ModelMappingOut(BaseModel):
     supports_stream: bool
     is_enabled: bool
     description: Optional[str]
+    extra_headers: Optional[Any]   # 返回 Coze bot_id 等配置
 
 
 # ── 总览统计 ─────────────────────────────────────────────────

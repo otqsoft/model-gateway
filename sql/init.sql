@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `model_mapping` (
   `supports_stream`   TINYINT(1)   NOT NULL DEFAULT 1    COMMENT '是否支持流式',
   `is_enabled`        TINYINT(1)   NOT NULL DEFAULT 1    COMMENT '是否启用',
   `description`       VARCHAR(255)          DEFAULT NULL COMMENT '模型描述',
+  `extra_headers`    JSON                  DEFAULT NULL COMMENT '厂商额外参数，如 Coze 的 bot_id',
   `created_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

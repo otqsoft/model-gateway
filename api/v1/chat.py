@@ -112,8 +112,8 @@ async def chat_completions(
             # 更新状态为 running
             await update_log_running(request_id, provider_name, upstream_model)
 
-            # 获取厂商适配器
-            provider = await get_provider(provider_name)
+            # 获取厂商适配器（Coze 需要 model_row 中的 bot_id）
+            provider = await get_provider(provider_name, model_row=model_row)
 
             if is_stream:
                 # ── 流式处理 ──────────────────────────────────

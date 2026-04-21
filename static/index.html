@@ -734,6 +734,10 @@ input:checked + .slider:before{transform:translateX(16px)}
         <label class="form-label">最大 Token 限制</label>
         <input class="form-input" type="number" id="md-max-tokens" value="8192">
       </div>
+      <div class="form-group" id="md-coze-bot-group" style="display:none">
+        <label class="form-label">Coze Bot ID <span style="color:var(--text-muted);font-weight:400;font-size:12px">(仅 Coze 供应商)</span></label>
+        <input class="form-input" id="md-bot-id" placeholder="如 7555813188811014186">
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-model')">取消</button>
@@ -1265,13 +1269,31 @@ async function openModelModal(md=null){
   document.getElementById('md-input-price').value=md?md.input_price:0.001;
   document.getElementById('md-output-price').value=md?md.output_price:0.002;
   document.getElementById('md-max-tokens').value=md?md.max_tokens:8192;
-  // fill provider select
+
+  // extra_headers.bot_id 支持 Coze
+  let botId = '';
+  try {
+    const eh = md && md.extra_headers;
+    if (eh) {
+      const h = typeof eh === 'string' ? JSON.parse(eh) : eh;
+      botId = h && h.bot_id ? h.bot_id : '';
+    }
+  } catch(_) {}
+  document.getElementById('md-bot-id').value = botId;
+
+  // 填充供应商下拉，根据选中值显示/隐藏 Coze bot_id 字段
   const sel=document.getElementById('md-provider');
   try{
     const ps=await api('GET','/admin/providers');
     sel.innerHTML=ps.items.map(p=>`<option value="${p.name}" ${md&&md.provider_name===p.name?'selected':''}>${p.display_name||p.name}</option>`).join('');
   }catch(e){sel.innerHTML='<option>加载失败</option>';}
+  toggleCozeBotField(sel.value);
+  sel.onchange=()=>toggleCozeBotField(sel.value);
   openModal('modal-model');
+}
+function toggleCozeBotField(providerName){
+  const g=document.getElementById('md-coze-bot-group');
+  g.style.display=providerName==='coze'?'block':'none';
 }
 function editModel(md){openModelModal(md);}
 
@@ -1295,13 +1317,18 @@ async function submitModel(){
   const id=document.getElementById('md-id').value;
   const body={
     model_alias:document.getElementById('md-alias').value.trim(),
-    upstream_model:document.getElementById('md-upstream').value.trim(),
     provider_name:document.getElementById('md-provider').value,
+    upstream_model:document.getElementById('md-upstream').value.trim(),
     input_price:+document.getElementById('md-input-price').value,
     output_price:+document.getElementById('md-output-price').value,
     max_tokens:+document.getElementById('md-max-tokens').value,
     is_enabled:true
   };
+  // Coze bot_id 通过 extra_headers 传递
+  const botId=document.getElementById('md-bot-id').value.trim();
+  if(botId){
+    body.extra_headers={bot_id:botId};
+  }
   try{
     if(id) await api('PUT','/admin/models/'+id,body);
     else await api('POST','/admin/models',body);

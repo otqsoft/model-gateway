@@ -4,7 +4,7 @@ api/admin/providers.py — 厂商管理接口
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import authenticate_admin
 from models.admin_models import ProviderCreate, ProviderUpdate
-from crud.providers import list_providers, create_provider, update_provider
+from crud.providers import list_providers, create_provider, update_provider, delete_provider
 
 router = APIRouter()
 
@@ -30,3 +30,16 @@ async def modify_provider(provider_id: int, data: ProviderUpdate) -> dict:
     if not row:
         raise HTTPException(status_code=404, detail="厂商不存在")
     return row
+
+
+@router.delete("/admin/providers/{provider_id}", dependencies=[Depends(authenticate_admin)])
+async def remove_provider(provider_id: int) -> dict:
+    """删除厂商；若仍有关联模型则拒绝删除"""
+    ok = await delete_provider(provider_id)
+    if ok is False:
+        raise HTTPException(
+            status_code=409,
+            detail="该供应商下仍有关联模型，请先删除对应模型后再删除供应商"
+        )
+    return {"success": True, "id": provider_id}
+

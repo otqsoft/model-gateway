@@ -4,7 +4,7 @@ api/admin/model_admin.py — 模型映射管理接口
 from fastapi import APIRouter, Depends, HTTPException, Query
 from middleware.auth import authenticate_admin
 from models.admin_models import ModelMappingCreate, ModelMappingOut
-from crud.models import list_models, create_model_mapping, update_model_mapping, update_model_enabled
+from crud.models import list_models, create_model_mapping, update_model_mapping, delete_model_mapping, update_model_enabled
 
 router = APIRouter()
 
@@ -40,4 +40,13 @@ async def set_model_enabled(
     """启用/禁用模型"""
     await update_model_enabled(model_id, is_enabled)
     return {"message": "已更新", "id": model_id, "is_enabled": is_enabled}
+
+
+@router.delete("/admin/models/{model_id}", dependencies=[Depends(authenticate_admin)])
+async def remove_model(model_id: int) -> dict:
+    """删除模型映射"""
+    ok = await delete_model_mapping(model_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="模型不存在")
+    return {"success": True, "id": model_id}
 

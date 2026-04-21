@@ -57,6 +57,15 @@ async def update_model_mapping(model_id: int, data: ModelMappingCreate) -> Optio
         return await db.fetchone("SELECT * FROM model_mapping WHERE id=%s", (model_id,))
 
 
+async def delete_model_mapping(model_id: int) -> bool:
+    """删除模型映射"""
+    async with DBHelper() as db:
+        affected = await db.execute_delete(
+            "DELETE FROM model_mapping WHERE id=%s", (model_id,)
+        )
+    return bool(affected)
+
+
 async def update_model_enabled(model_id: int, is_enabled: bool) -> None:
     """启用/禁用模型"""
     async with DBHelper() as db:

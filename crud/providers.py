@@ -61,6 +61,23 @@ async def create_provider(data: ProviderCreate) -> dict:
     return row
 
 
+async def delete_provider(provider_id: int) -> bool:
+    """删除厂商；若仍有关联模型则返回 False"""
+    async with DBHelper() as db:
+        # 检查是否有关联模型映射
+        ref = await db.fetchone(
+            "SELECT id FROM model_mapping WHERE provider_name="
+            "(SELECT name FROM model_providers WHERE id=%s) LIMIT 1",
+            (provider_id,)
+        )
+        if ref:
+            return False
+        affected = await db.execute_delete(
+            "DELETE FROM model_providers WHERE id=%s", (provider_id,)
+        )
+    return bool(affected)
+
+
 async def update_provider(provider_id: int, data: ProviderUpdate) -> Optional[dict]:
     """更新厂商"""
     updates = {}

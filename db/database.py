@@ -72,9 +72,14 @@ class DBHelper:
         return False
 
     async def execute(self, sql: str, args=None) -> int:
-        """执行写操作，返回 lastrowid"""
+        """执行写操作，返回 lastrowid（INSERT 场景）"""
         await self._cursor.execute(sql, args)
         return self._cursor.lastrowid
+
+    async def execute_delete(self, sql: str, args=None) -> int:
+        """执行 DELETE/UPDATE，返回 affected rows"""
+        await self._cursor.execute(sql, args)
+        return self._cursor.rowcount
 
     async def fetchone(self, sql: str, args=None) -> Optional[dict]:
         """查询单行"""

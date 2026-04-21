@@ -1100,8 +1100,9 @@ async function loadProviders(){
         <td>${p.max_concurrency||50}</td>
         <td>${p.timeout_seconds||120}</td>
         <td><span class="badge ${p.is_enabled?'badge-green':'badge-red'}">${p.is_enabled?'启用':'禁用'}</span></td>
-        <td>
+        <td style="display:flex;gap:6px">
           <button class="btn btn-sm" onclick='editProvider(${JSON.stringify(p)})'>编辑</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteProvider(${p.id},"${p.display_name||p.name}")'>删除</button>
         </td>
       </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
   }catch(e){toast('加载供应商失败: '+e.message,'err')}
@@ -1143,6 +1144,16 @@ async function submitProvider(){
   }catch(e){toast('保存失败: '+e.message,'err')}
 }
 
+async function deleteProvider(id, name){
+  if(!confirm(`确认删除供应商「${name}」？\n\n若该供应商下仍有关联模型，删除将被拒绝。`)) return;
+  try{
+    await api('DELETE','/admin/providers/'+id);
+    toast('供应商已删除');
+    loadProviders();
+  }catch(e){toast('删除失败: '+e.message,'err')}
+}
+
+
 // ─── Models ────────────────────────────────────────────────
 async function loadModels(){
   try{
@@ -1161,8 +1172,11 @@ async function loadModels(){
             <input type="checkbox" ${m.is_enabled?'checked':''} onchange="toggleModel(${m.id},this.checked)">
             <span class="slider"></span>
           </label>
+</td>
+        <td>
+          <button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteModel(${m.id},"${m.model_alias}")'>删除</button>
         </td>
-        <td><button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button></td>
       </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
   }catch(e){toast('加载模型失败: '+e.message,'err')}
 }
@@ -1190,6 +1204,15 @@ async function toggleModel(id,enabled){
     await api('PATCH',`/admin/models/${id}/enable?is_enabled=${enabled}`);
     toast(enabled?'已启用':'已禁用');
   }catch(e){toast('操作失败: '+e.message,'err');loadModels();}
+}
+
+async function deleteModel(id, alias){
+  if(!confirm(`确认删除模型「${alias}」？`)) return;
+  try{
+    await api('DELETE',`/admin/models/${id}`);
+    toast('模型已删除');
+    loadModels();
+  }catch(e){toast('删除失败: '+e.message,'err');}
 }
 
 async function submitModel(){

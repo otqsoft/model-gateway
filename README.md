@@ -54,6 +54,8 @@ model-gateway/
 │   ├── minimax.py             # MiniMax 适配器
 │   ├── glm.py                 # GLM（智谱）适配器
 │   ├── xiaomi.py              # 小米适配器
+│   ├── coze.py                # coze适配器
+│   ├── dify.py                # dify适配器
 │   ├── siliconflow.py         # 硅基流动适配器
 │   ├── modelscope.py          # 魔塔社区适配器
 │   └── registry.py            # 适配器注册表
@@ -114,6 +116,8 @@ uv run uvicorn main:app --reload
 
 ### 5. 调用示例
 
+#### api调用
+
 ```bash
 # 调用对话接口（OpenAI 兼容）
 curl http://localhost:8000/v1/chat/completions \
@@ -121,10 +125,36 @@ curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "deepseek-chat",
-    "messages": [{"role":"user","content":"你好"}],
+    "messages": [{"role":"user","content":"hello"}],
+    "stream": false
+  }'
+# 调用智能体时，模型名称前面需加agent如
+curl http://localhost:8000/v1/chat/completions \
+  -H "Authorization: Bearer sk-xxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "agent:coze_viki",
+    "messages": [{"role":"user","content":"hello"}],
     "stream": false
   }'
 ```
+
+#### Cherry Studio 中调用
+
+<table>
+    <tr>
+        <td><img src="static/images/c1.png"/></td>
+        <td><img src="static/images/c2.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/c3.png"/></td>
+        <td><img src="static/images/c4.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/c5.png"/></td>
+        <td><img src="static/images/c6.png"/></td>
+    </tr>
+</table>
 
 
 
@@ -148,4 +178,3 @@ curl http://localhost:8000/v1/chat/completions \
         <td><img src="static/images/8.png"/></td>
     </tr>
 </table>
-

@@ -98,7 +98,13 @@ class CozeProvider(BaseProvider):
           "msg": "success",
           "data": {
             "conversation_id": "...",
-            "messages": [...]
+            "messages": [...],
+            "chat": {
+              "usage": {
+                "input_count": 10,
+                "output_count": 20
+              }
+            }
           }
         }
         """
@@ -107,6 +113,8 @@ class CozeProvider(BaseProvider):
             msg = data.get("msg", str(data))
             raise ProviderException(f"Coze API 错误: {msg}", status_code=502, upstream_status=0)
 
+        logger.info("Coze 非流式响应: %s", json.dumps(data, ensure_ascii=False)[:500])
+        
         coze_data = data.get("data", {})
         messages = coze_data.get("messages", [])
 
@@ -136,12 +144,24 @@ class CozeProvider(BaseProvider):
 
         # 尝试从 usage 中提取 token
         usage_data = coze_data.get("usage", {})
+        
+        # 检查 coze_data.chat.usage
+        if not usage_data and isinstance(coze_data, dict):
+            chat_data = coze_data.get("chat", {})
+            if chat_data:
+                usage_data = chat_data.get("usage", {})
+        
+        # 处理不同的字段名
+        prompt_tokens = usage_data.get("input_tokens", 0) or usage_data.get("input_count", 0)
+        completion_tokens = usage_data.get("output_tokens", 0) or usage_data.get("output_count", 0)
+        total_tokens = usage_data.get("total_tokens", 0) or usage_data.get("token_count", 0) or (prompt_tokens + completion_tokens)
+        
+        logger.info("Coze 非流式响应 usage: prompt_tokens=%d, completion_tokens=%d, total_tokens=%d", prompt_tokens, completion_tokens, total_tokens)
+        
         usage = UsageInfo(
-            prompt_tokens=usage_data.get("input_tokens", 0),
-            completion_tokens=usage_data.get("output_tokens", 0),
-            total_tokens=(
-                usage_data.get("input_tokens", 0) + usage_data.get("output_tokens", 0)
-            ),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
         )
 
         return ChatCompletionResponse(
@@ -183,6 +203,10 @@ class CozeProvider(BaseProvider):
                     event_id = f"chatcmpl-coze-{uuid.uuid4().hex[:24]}"
                     idx = 0
                     event_type = None  # SSE 事件类型，event: 行才赋值
+                    prompt_tokens = 0
+                    completion_tokens = 0
+                    full_content = ""
+                    done_usage_captured = False
 
                     async for raw_line in resp.content:
                         line = raw_line.decode("utf-8", errors="replace").strip()
@@ -208,10 +232,38 @@ class CozeProvider(BaseProvider):
                             logger.warning("Coze SSE JSON decode error: %s", raw_json[:100])
                             continue
 
-                        # Coze done 事件
+                        # Coze conversation.chat.completed 事件：包含 usage 统计
+                        # usage 在 event_data["chat"]["usage"] 下，字段为 token_count/input_count/output_count
+                        if event_type == "conversation.chat.completed":
+                            chat_data = event_data.get("chat", {}) or {}
+                            usage_in_chat = chat_data.get("usage") or {}
+                            if isinstance(usage_in_chat, dict):
+                                prompt_tokens = usage_in_chat.get("input_count", 0)
+                                completion_tokens = usage_in_chat.get("output_count", 0)
+                            # 保留在变量里，done 事件时再 yield final_chunk
+                            # 保留在变量里，done 事件时再 yield final_chunk
+                            # 不 yield 任何 SSE 行，避免重复发送
+                            continue
+
+                        # Coze done 事件：流正常结束，yield 含 usage 的最终 chunk
                         if event_type == "done":
-                            # logger.info("Coze SSE done event")
-                            # 发送 [DONE]
+                            # yield 最终 chunk（含 usage）
+                            final_chunk = {
+                                "id": event_id,
+                                "object": "chat.completion.chunk",
+                                "model": model,
+                                "choices": [{
+                                    "index": idx,
+                                    "delta": {},
+                                    "finish_reason": "stop",
+                                }],
+                                "usage": {
+                                    "prompt_tokens": prompt_tokens,
+                                    "completion_tokens": completion_tokens,
+                                    "total_tokens": prompt_tokens + completion_tokens,
+                                },
+                            }
+                            yield f"data: {json.dumps(final_chunk, ensure_ascii=False)}\n\n"
                             yield "data: [DONE]\n\n"
                             return
 
@@ -219,9 +271,12 @@ class CozeProvider(BaseProvider):
                         if event_type in ["conversation.message.delta", "conversation.message.completed"]:
                             # 从 event_data 中获取内容
                             msg_content = event_data.get("content", "")
-                            
+                            usage_data = event_data.get("usage", {})
+                            completion_tokens = usage_data.get("output_tokens", completion_tokens)
+
                             # logger.info("Coze SSE message content: %s", msg_content)
                             if msg_content:
+                                full_content += msg_content
                                 choice = {
                                     "index": idx,
                                     "delta": {"content": msg_content},

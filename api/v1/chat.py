@@ -432,15 +432,21 @@ async def _agent_stream_generator(
             await update_log_success(request_id=request_id, upstream_status=upstream_status,
                                      prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
                                      ttft_ms=ttft_ms, duration_ms=duration_ms)
-            if prompt_tokens + completion_tokens > 0:
+            total_tokens = prompt_tokens + completion_tokens
+            total_cost = 0.0
+            if total_tokens > 0:
                 bill = await create_billing_record(
                     request_id=request_id, api_key_id=key_row.id, key_id=key_row.key_id,
                     model_alias=model_alias, provider_name=provider_name,
                     prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
                     input_price=0.0, output_price=0.0,
                 )
-                await increment_key_stats(key_row.id, bill["total_tokens"], bill["total_cost"])
-                await increment_agent_stats(agent_row["id"], bill["total_tokens"], bill["total_cost"])
+                total_tokens = bill["total_tokens"]
+                total_cost = bill["total_cost"]
+
+            # 即使 usage 缺失导致 tokens=0，也要统计“调用次数”
+            await increment_key_stats(key_row.id, int(total_tokens), float(total_cost))
+            await increment_agent_stats(agent_row["id"], int(total_tokens), float(total_cost))
 
 
 async def _stream_generator(
@@ -539,7 +545,9 @@ async def _stream_generator(
                 ttft_ms=ttft_ms,
                 duration_ms=duration_ms,
             )
-            if prompt_tokens + completion_tokens > 0:
+            total_tokens = prompt_tokens + completion_tokens
+            total_cost = 0.0
+            if total_tokens > 0:
                 bill = await create_billing_record(
                     request_id=request_id,
                     api_key_id=key_row.id,
@@ -551,4 +559,8 @@ async def _stream_generator(
                     input_price=float(model_row["input_price"]),
                     output_price=float(model_row["output_price"]),
                 )
-                await increment_key_stats(key_row.id, bill["total_tokens"], bill["total_cost"])
+                total_tokens = bill["total_tokens"]
+                total_cost = bill["total_cost"]
+
+            # 即使 usage 缺失导致 tokens=0，也要统计“调用次数”
+            await increment_key_stats(key_row.id, int(total_tokens), float(total_cost))

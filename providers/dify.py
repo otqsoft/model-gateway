@@ -121,6 +121,21 @@ class DifyProvider(BaseProvider):
                 data = await resp.json(content_type=None)
 
                 answer = data.get("answer", "")
+
+                # 尝试从 metadata 提取 token
+                metadata = data.get("metadata", {}) or {}
+                usage_data = metadata.get("usage", {}) or {}
+                
+                # 尝试从其他位置提取 usage
+                if not usage_data:
+                    usage_data = data.get("usage", {}) or {}
+                
+                prompt_tokens = usage_data.get("prompt_tokens", 0)
+                completion_tokens = usage_data.get("completion_tokens", 0)
+                total_tokens = usage_data.get("total_tokens", prompt_tokens + completion_tokens)
+                
+                logger.info("Dify 非流式响应 usage: prompt_tokens=%d, completion_tokens=%d, total_tokens=%d", prompt_tokens, completion_tokens, total_tokens)
+
                 return ChatCompletionResponse(
                     id=data.get("id", f"chatcmpl-dify-{uuid.uuid4().hex[:24]}"),
                     model=model,
@@ -129,7 +144,11 @@ class DifyProvider(BaseProvider):
                         message=ChatMessage(role="assistant", content=answer or ""),
                         finish_reason="stop",
                     )],
-                    usage=UsageInfo(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+                    usage=UsageInfo(
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                        total_tokens=total_tokens,
+                    ),
                 )
 
     # ── 流式 ────────────────────────────────────────────────────
@@ -167,6 +186,10 @@ class DifyProvider(BaseProvider):
                 event_id = f"chatcmpl-dify-{uuid.uuid4().hex[:24]}"
                 idx = 0
                 event_type = None
+                prompt_tokens = 0
+                completion_tokens = 0
+                full_content = ""
+                done_yielded = False
 
                 async for raw_line in resp.content:
                     line = raw_line.decode("utf-8", errors="replace").strip()
@@ -188,8 +211,32 @@ class DifyProvider(BaseProvider):
                     event_type = event_data.get("event", "")
                     # logger.info("Dify SSE event: %s", event_type)
 
-                    # Dify 流结束
+                    # Dify 流结束：在 [DONE] 前发送含 usage 的最终 chunk
                     if event_type in ("end", "finished", "message_end"):
+                        # 尝试从结束事件补齐 usage（有些 Dify 部署只在 end 事件返回 usage）
+                        metadata = event_data.get("metadata", {}) or {}
+                        usage_in_end = (metadata.get("usage", {}) or {})
+                        prompt_tokens = usage_in_end.get("prompt_tokens", prompt_tokens)
+                        completion_tokens = usage_in_end.get("completion_tokens", completion_tokens)
+
+                        if not done_yielded:
+                            done_yielded = True
+                            final_chunk = {
+                                "id": event_id,
+                                "object": "chat.completion.chunk",
+                                "model": model,
+                                "choices": [{
+                                    "index": idx,
+                                    "delta": {},
+                                    "finish_reason": "stop",
+                                }],
+                                "usage": {
+                                    "prompt_tokens": prompt_tokens,
+                                    "completion_tokens": completion_tokens,
+                                    "total_tokens": prompt_tokens + completion_tokens,
+                                },
+                            }
+                            yield f"data: {json.dumps(final_chunk, ensure_ascii=False)}\n\n"
                         yield "data: [DONE]\n\n"
                         return
 
@@ -200,7 +247,7 @@ class DifyProvider(BaseProvider):
                             or event_data.get("text", "")
                             or ""
                         )
-                        
+
                         # 尝试从其他字段获取内容
                         if not msg_content:
                             # 检查 event_data.content
@@ -211,8 +258,14 @@ class DifyProvider(BaseProvider):
                                 message_obj = event_data.get("message")
                                 if isinstance(message_obj, dict):
                                     msg_content = message_obj.get("content", "")
-                        
-                        # logger.info("Dify SSE message content: %s", msg_content)
+
+                        # 尝试从 metadata.usage 提取 token
+                        metadata = event_data.get("metadata", {}) or {}
+                        usage_in_chunk = (metadata.get("usage", {}) or {})
+                        prompt_tokens = usage_in_chunk.get("prompt_tokens", prompt_tokens)
+                        completion_tokens = usage_in_chunk.get("completion_tokens", completion_tokens)
+
+                        full_content += msg_content
                         if msg_content:
                             chunk = {
                                 "id": event_id,

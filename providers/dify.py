@@ -134,7 +134,7 @@ class DifyProvider(BaseProvider):
                 completion_tokens = usage_data.get("completion_tokens", 0)
                 total_tokens = usage_data.get("total_tokens", prompt_tokens + completion_tokens)
                 
-                logger.info("Dify 非流式响应 usage: prompt_tokens=%d, completion_tokens=%d, total_tokens=%d", prompt_tokens, completion_tokens, total_tokens)
+                # logger.info("Dify 非流式响应 usage: prompt_tokens=%d, completion_tokens=%d, total_tokens=%d", prompt_tokens, completion_tokens, total_tokens)
 
                 return ChatCompletionResponse(
                     id=data.get("id", f"chatcmpl-dify-{uuid.uuid4().hex[:24]}"),
@@ -171,7 +171,7 @@ class DifyProvider(BaseProvider):
         import aiohttp
         url = self._build_dify_url()
         timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
-        logger.info("Dify 流式请求: url=%s, body=%s", url, json.dumps(body, ensure_ascii=False))
+        # logger.info("Dify 流式请求: url=%s, body=%s", url, json.dumps(body, ensure_ascii=False))
 
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(url, json=body, headers=headers) as resp:

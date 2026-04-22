@@ -113,7 +113,7 @@ class CozeProvider(BaseProvider):
             msg = data.get("msg", str(data))
             raise ProviderException(f"Coze API 错误: {msg}", status_code=502, upstream_status=0)
 
-        logger.info("Coze 非流式响应: %s", json.dumps(data, ensure_ascii=False)[:500])
+        # logger.info("Coze 非流式响应: %s", json.dumps(data, ensure_ascii=False)[:500])
         
         coze_data = data.get("data", {})
         messages = coze_data.get("messages", [])
@@ -156,7 +156,7 @@ class CozeProvider(BaseProvider):
         completion_tokens = usage_data.get("output_tokens", 0) or usage_data.get("output_count", 0)
         total_tokens = usage_data.get("total_tokens", 0) or usage_data.get("token_count", 0) or (prompt_tokens + completion_tokens)
         
-        logger.info("Coze 非流式响应 usage: prompt_tokens=%d, completion_tokens=%d, total_tokens=%d", prompt_tokens, completion_tokens, total_tokens)
+        # logger.info("Coze 非流式响应 usage: prompt_tokens=%d, completion_tokens=%d, total_tokens=%d", prompt_tokens, completion_tokens, total_tokens)
         
         usage = UsageInfo(
             prompt_tokens=prompt_tokens,
@@ -235,18 +235,81 @@ class CozeProvider(BaseProvider):
                         # Coze conversation.chat.completed 事件：包含 usage 统计
                         # usage 在 event_data["chat"]["usage"] 下，字段为 token_count/input_count/output_count
                         if event_type == "conversation.chat.completed":
-                            chat_data = event_data.get("chat", {}) or {}
-                            usage_in_chat = chat_data.get("usage") or {}
+                            # 不同版本/部署下 usage 的层级可能不同，这里做多路径兜底
+                            # 常见路径：
+                            # - event_data.chat.usage
+                            # - event_data.data.chat.usage
+                            # - event_data.data.usage
+                            # - event_data.usage
+                            data_obj = event_data.get("data") or {}
+                            chat_data = event_data.get("chat") or data_obj.get("chat") or {}
+                            usage_in_chat = (
+                                (chat_data.get("usage") if isinstance(chat_data, dict) else None)
+                                or (data_obj.get("usage") if isinstance(data_obj, dict) else None)
+                                or event_data.get("usage")
+                                or {}
+                            )
+
+                            # logger.info(
+                            #     "Coze SSE conversation.chat.completed raw: %s",
+                            #     json.dumps(event_data, ensure_ascii=False)[:800],
+                            # )
+
                             if isinstance(usage_in_chat, dict):
-                                prompt_tokens = usage_in_chat.get("input_count", 0)
-                                completion_tokens = usage_in_chat.get("output_count", 0)
-                            # 保留在变量里，done 事件时再 yield final_chunk
-                            # 保留在变量里，done 事件时再 yield final_chunk
-                            # 不 yield 任何 SSE 行，避免重复发送
+                                def _to_int(v) -> int:
+                                    try:
+                                        return int(v)
+                                    except Exception:
+                                        return 0
+
+                                prompt_tokens = _to_int(
+                                    usage_in_chat.get("input_tokens", 0)
+                                    or usage_in_chat.get("input_count", 0)
+                                    or 0
+                                )
+                                completion_tokens = _to_int(
+                                    usage_in_chat.get("output_tokens", 0)
+                                    or usage_in_chat.get("output_count", 0)
+                                    or 0
+                                )
+
+                                # 如果只给了 token_count（总 token），尽量保底补齐
+                                token_count = _to_int(usage_in_chat.get("token_count", 0) or usage_in_chat.get("total_tokens", 0) or 0)
+                                if token_count > 0 and (prompt_tokens + completion_tokens) == 0:
+                                    completion_tokens = token_count
+                                elif token_count > 0 and (prompt_tokens + completion_tokens) != token_count:
+                                    # 以 token_count 为准，避免统计偏差
+                                    completion_tokens = max(0, token_count - prompt_tokens)
+
+                            # 有些 Coze 流不会再发 `done`，此处直接结束并携带 usage
+                            if not done_usage_captured:
+                                done_usage_captured = True
+                                final_chunk = {
+                                    "id": event_id,
+                                    "object": "chat.completion.chunk",
+                                    "model": model,
+                                    "choices": [{
+                                        "index": idx,
+                                        "delta": {},
+                                        "finish_reason": "stop",
+                                    }],
+                                    "usage": {
+                                        "prompt_tokens": prompt_tokens,
+                                        "completion_tokens": completion_tokens,
+                                        "total_tokens": prompt_tokens + completion_tokens,
+                                    },
+                                }
+                                yield f"data: {json.dumps(final_chunk, ensure_ascii=False)}\n\n"
+                                yield "data: [DONE]\n\n"
+                                return
+
                             continue
 
                         # Coze done 事件：流正常结束，yield 含 usage 的最终 chunk
                         if event_type == "done":
+                            if done_usage_captured:
+                                yield "data: [DONE]\n\n"
+                                return
                             # yield 最终 chunk（含 usage）
                             final_chunk = {
                                 "id": event_id,

@@ -14,10 +14,11 @@ USE `model_gateway`;
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `model_providers` (
   `id`              BIGINT       UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-  `name`            VARCHAR(64)  NOT NULL COMMENT '厂商标识，如 deepseek / minimax / glm',
+  `name`            VARCHAR(64)  NOT NULL COMMENT '厂商标识，如 deepseek / coze / dify',
   `display_name`    VARCHAR(128) NOT NULL COMMENT '显示名称',
+  `provider_type`   VARCHAR(32)  NOT NULL DEFAULT 'model' COMMENT '厂商类型: model（模型厂商）/ agent（智能体厂商）',
   `base_url`        VARCHAR(512) NOT NULL COMMENT '上游 API 基础地址',
-  `api_key`         TEXT         NOT NULL COMMENT '加密存储的上游 API Key',
+  `api_key`         TEXT         NOT NULL DEFAULT '' COMMENT '模型厂商 API Key（加密存储）；智能体厂商此字段留空，Key 在各智能体上配置',
   `max_concurrency` INT          NOT NULL DEFAULT 50  COMMENT '该厂商最大并发数',
   `timeout_seconds` INT          NOT NULL DEFAULT 120 COMMENT '请求超时秒数',
   `is_enabled`      TINYINT(1)   NOT NULL DEFAULT 1   COMMENT '是否启用 1启用 0禁用',
@@ -26,7 +27,8 @@ CREATE TABLE IF NOT EXISTS `model_providers` (
   `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_name` (`name`)
+  UNIQUE KEY `uk_name` (`name`),
+  KEY `idx_provider_type` (`provider_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='上游厂商配置';
 
 -- ============================================================
@@ -159,15 +161,17 @@ INSERT INTO `model_providers` (`name`, `display_name`, `base_url`, `api_key`, `m
 
 -- ============================================================
 -- 6. 智能体配置表
+-- 说明：每条记录是一个具体智能体实例，同一供应商（如coze）可有多个实例，
+--       每个实例的 api_key 独立配置；供应商层面不存储 api_key
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `agent_configs` (
   `id`              BIGINT       UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-  `name`            VARCHAR(128) NOT NULL COMMENT '智能体名称',
-  `agent_type`      VARCHAR(32)  NOT NULL COMMENT '智能体类型: coze / dify / custom',
+  `provider_name`   VARCHAR(64)  NOT NULL COMMENT '所属供应商名称（关联 model_providers.name，provider_type=agent）',
+  `name`            VARCHAR(128) NOT NULL COMMENT '智能体唯一标识（全局唯一）',
   `display_name`    VARCHAR(128) NOT NULL COMMENT '显示名称',
   `bot_id`          VARCHAR(256)          DEFAULT NULL COMMENT 'Coze Bot ID / Dify App ID',
-  `api_key`         TEXT                  DEFAULT NULL COMMENT 'API Key（加密存储）',
-  `base_url`        VARCHAR(512)          DEFAULT NULL COMMENT '自定义API地址',
+  `api_key`         TEXT                  DEFAULT NULL COMMENT '该智能体专属 API Key（加密存储）',
+  `base_url`        VARCHAR(512)          DEFAULT NULL COMMENT '自定义API地址（覆盖供应商默认地址时使用）',
   `description`     VARCHAR(512)          DEFAULT NULL COMMENT '智能体描述',
   `config`          JSON                  DEFAULT NULL COMMENT '扩展配置（JSON）',
   `is_enabled`      TINYINT(1)   NOT NULL DEFAULT 1    COMMENT '是否启用',
@@ -179,9 +183,14 @@ CREATE TABLE IF NOT EXISTS `agent_configs` (
   `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_name` (`name`),
-  KEY `idx_agent_type` (`agent_type`),
+  KEY `idx_provider_name` (`provider_name`),
   KEY `idx_enabled` (`is_enabled`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能体配置';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能体配置（每行一个智能体实例，同供应商可多个）';
+
+-- 初始化智能体类供应商（api_key 留空，在各智能体上单独配置）
+INSERT IGNORE INTO `model_providers` (`name`, `display_name`, `provider_type`, `base_url`, `api_key`, `max_concurrency`, `timeout_seconds`) VALUES
+('coze',   'Coze',   'agent', 'https://api.coze.cn/open_api/v2/chat',           '', 20, 120),
+('dify',   'Dify',   'agent', 'https://api.dify.ai/v1',                          '', 20, 120);
 
 -- ============================================================
 -- 初始化默认模型映射

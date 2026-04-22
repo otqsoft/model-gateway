@@ -210,6 +210,7 @@ tr:hover td{background:var(--bg-hover)}
 .badge-red{background:rgba(248,81,73,.15);color:var(--accent-red)}
 .badge-orange{background:rgba(210,153,34,.15);color:var(--accent-orange)}
 .badge-blue{background:rgba(88,166,255,.15);color:var(--accent-blue)}
+.badge-purple{background:rgba(188,140,255,.15);color:var(--accent-purple)}
 .badge-gray{background:rgba(139,148,158,.15);color:var(--text-secondary)}
 
 /* ─── Form ───────────────────────────────────────────────── */
@@ -359,10 +360,10 @@ input:checked + .slider:before{transform:translateX(16px)}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       模型管理
     </div>
-    <!-- <div class="nav-item" data-page="agents" onclick="nav(this)">
+    <div class="nav-item" data-page="agents" onclick="nav(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a5 5 0 015 5c0 2.76-2.24 5-5 5s-5-2.24-5-5a5 5 0 015-5z"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       智能体
-    </div> -->
+    </div>
     <div class="nav-item" data-page="keys" onclick="nav(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
       API 密钥
@@ -450,7 +451,7 @@ input:checked + .slider:before{transform:translateX(16px)}
 
     <!-- ══════════ PAGE: MONITOR ══════════ -->
     <div class="page" id="page-monitor">
-      <div class="grid g3" style="margin-bottom:16px">
+      <div class="grid g4" style="margin-bottom:16px">
         <div class="card">
           <div class="card-title"><span>🔵 供应商使用占比</span></div>
           <div style="height:200px;position:relative"><canvas id="providerPie"></canvas></div>
@@ -466,11 +467,11 @@ input:checked + .slider:before{transform:translateX(16px)}
           <div style="height:200px;position:relative"><canvas id="modelPie"></canvas></div>
           <div id="modelPieLegend" style="margin-top:12px"></div>
         </div>
-        <!-- <div class="card">
+        <div class="card">
           <div class="card-title"><span>🤖 智能体使用占比</span></div>
           <div style="height:200px;position:relative"><canvas id="agentPie"></canvas></div>
           <div id="agentPieLegend" style="margin-top:12px"></div>
-        </div> -->
+        </div>
       </div>
 
       <div class="grid g2" style="margin-bottom:16px">
@@ -513,11 +514,11 @@ input:checked + .slider:before{transform:translateX(16px)}
       <div class="tbl-wrap">
         <table>
           <thead><tr>
-            <th>ID</th><th>名称</th><th>显示名</th><th>Base URL</th>
+            <th>ID</th><th>名称</th><th>显示名</th><th>类型</th><th>Base URL</th>
             <th>最大并发</th><th>超时(s)</th><th>状态</th><th>操作</th>
           </tr></thead>
           <tbody id="providers-tbody">
-            <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -554,16 +555,9 @@ input:checked + .slider:before{transform:translateX(16px)}
         <div class="stat-card"><div class="stat-label">累计Token</div><div class="stat-val c-teal" id="ag-tokens">—</div></div>
         <div class="stat-card"><div class="stat-label">累计费用</div><div class="stat-val c-orange" id="ag-cost">—</div></div>
       </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr>
-            <th>ID</th><th>名称</th><th>类型</th><th>Bot ID</th>
-            <th>调用次数</th><th>Token</th><th>费用</th><th>状态</th><th>操作</th>
-          </tr></thead>
-          <tbody id="agents-tbody">
-            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
-          </tbody>
-        </table>
+      <!-- 按供应商分组展示智能体 -->
+      <div id="agents-groups">
+        <div style="text-align:center;color:var(--text-muted);padding:30px">加载中...</div>
       </div>
     </div>
 
@@ -702,12 +696,25 @@ input:checked + .slider:before{transform:translateX(16px)}
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">供应商类型</label>
+        <select class="form-select" id="pv-type" onchange="toggleProviderTypeFields()">
+          <option value="model">模型供应商（统一 API Key）</option>
+          <option value="agent">智能体供应商（如 Coze / Dify，每个智能体独立 API Key）</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label class="form-label">Base URL</label>
         <input class="form-input" id="pv-url" placeholder="https://api.deepseek.com/v1">
       </div>
-      <div class="form-group">
+      <div class="form-group" id="pv-key-group">
         <label class="form-label">API Key（加密存储）</label>
         <input class="form-input" type="password" id="pv-key" placeholder="sk-...（留空则不修改）">
+      </div>
+      <div class="form-group" id="pv-agent-hint" style="display:none">
+        <div style="padding:10px 14px;background:rgba(188,140,255,.1);border:1px solid rgba(188,140,255,.25);border-radius:6px;font-size:12px;color:var(--accent-purple);line-height:1.6">
+          🤖 <strong>智能体供应商</strong>不在此处设置 API Key。<br>
+          请在「智能体管理」页面为每个智能体单独配置 API Key。
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -789,35 +796,33 @@ input:checked + .slider:before{transform:translateX(16px)}
     </div>
     <div class="modal-body">
       <input type="hidden" id="ag-id">
+      <div class="form-group">
+        <label class="form-label">所属供应商 <span style="color:var(--text-muted);font-size:12px;font-weight:400">（智能体类型的供应商）</span></label>
+        <select class="form-select" id="ag-provider">
+          <option value="">加载中...</option>
+        </select>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">名称（英文唯一标识）</label>
-          <input class="form-input" id="ag-name" placeholder="my-coze-bot">
+          <input class="form-input" id="ag-name" placeholder="my-coze-bot-1">
         </div>
         <div class="form-group">
           <label class="form-label">显示名称</label>
-          <input class="form-input" id="ag-display" placeholder="我的CozeBot">
+          <input class="form-input" id="ag-display" placeholder="我的Coze机器人1">
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">智能体类型</label>
-        <select class="form-select" id="ag-type" onchange="toggleAgentTypeFields()">
-          <option value="coze">Coze</option>
-          <option value="dify">Dify</option>
-          <option value="custom">自定义</option>
-        </select>
+        <label class="form-label">Bot ID / App ID <span style="color:var(--text-muted);font-size:12px;font-weight:400">（Coze 的 Bot ID 或 Dify 的 App ID）</span></label>
+        <input class="form-input" id="ag-bot-id" placeholder="如 7555813188811014186">
       </div>
-      <div class="form-group" id="ag-bot-group">
-        <label class="form-label">Bot ID / App ID</label>
-        <input class="form-input" id="ag-bot-id" placeholder="Coze Bot ID 或 Dify App ID">
+      <div class="form-group">
+        <label class="form-label">API Key <span style="color:var(--accent-purple);font-size:12px;font-weight:400">（每个智能体独立的 Key）</span></label>
+        <input class="form-input" type="password" id="ag-api-key" placeholder="编辑时留空则不修改">
       </div>
-      <div class="form-group" id="ag-api-key-group">
-        <label class="form-label">API Key（加密存储）</label>
-        <input class="form-input" type="password" id="ag-api-key" placeholder="留空则不修改">
-      </div>
-      <div class="form-group" id="ag-url-group" style="display:none">
-        <label class="form-label">自定义 API 地址</label>
-        <input class="form-input" id="ag-url" placeholder="https://your-api.com">
+      <div class="form-group" id="ag-url-group">
+        <label class="form-label">自定义 API 地址 <span style="color:var(--text-muted);font-size:12px;font-weight:400">（留空使用供应商默认地址）</span></label>
+        <input class="form-input" id="ag-url" placeholder="留空则使用供应商 base_url">
       </div>
       <div class="form-group">
         <label class="form-label">描述</label>
@@ -1193,13 +1198,16 @@ function renderAgentStats(data){
   const el=document.getElementById('agentPie');
   if(!el) return;
   const items=data.agent_stats||[];
+  const details=data.agent_details||[];
+  // 无数据时显示空态
   if(items.length===0){
-    el.parentElement.querySelector('canvas')?.remove?.();
+    document.getElementById('agentPieLegend').innerHTML=
+      '<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px">暂无智能体调用数据</div>';
     return;
   }
-  const labels=items.map(i=>i.agent_type.toUpperCase());
+  const colors=['#bc8cff','#3fb950','#d29922','#f85149','#58a6ff','#39d0d0'];
+  const labels=items.map(i=>i.provider_display_name||i.provider_name);
   const vals=items.map(i=>i.total_calls||0);
-  const colors=['#bc8cff','#f85149','#d29922'];
   const existing=Chart.getChart('agentPie');
   if(existing) existing.destroy();
   new Chart(el,{
@@ -1207,21 +1215,34 @@ function renderAgentStats(data){
     data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:'#161b22',borderWidth:2,hoverOffset:6}]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtNum(ctx.raw)}次 (${data.agent_stats[ctx.dataIndex]?.call_percentage||0}%)`}}}
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtNum(ctx.raw)}次 (${items[ctx.dataIndex]?.call_percentage||0}%)`}}}
     }
   });
-  // legend
+  // 图例：按供应商汇总，可以看到下属智能体数量
   const ld=document.getElementById('agentPieLegend');
   if(ld){
-    ld.innerHTML=labels.map((l,i)=>`
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="width:12px;height:12px;border-radius:3px;background:${colors[i]};flex-shrink:0"></span>
-        <span style="flex:1;font-size:13px">${l}</span>
-        <span style="color:var(--text-secondary);font-size:12px">${fmtNum(items[i].total_calls||0)}次</span>
-        <span style="color:var(--text-muted);font-size:12px">${items[i].call_percentage||0}%</span>
-      </div>`).join('');
+    ld.innerHTML=labels.map((l,i)=>{
+      const provName=items[i].provider_name;
+      const provDetails=details.filter(d=>d.provider_name===provName);
+      return `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:12px;height:12px;border-radius:3px;background:${colors[i]};flex-shrink:0"></span>
+          <span style="flex:1;font-size:13px;font-weight:500">${l}</span>
+          <span style="color:var(--text-secondary);font-size:12px">${fmtNum(items[i].total_calls||0)}次</span>
+          <span style="color:var(--text-muted);font-size:12px">${items[i].call_percentage||0}%</span>
+        </div>
+        ${provDetails.map(d=>`
+          <div style="display:flex;align-items:center;gap:6px;padding-left:20px;margin-top:3px">
+            <span style="font-size:11px;color:var(--text-muted)">└</span>
+            <span style="font-size:11px;color:var(--text-secondary);flex:1">${d.display_name||d.name}</span>
+            <span style="font-size:11px;color:var(--text-muted)">${fmtNum(d.total_calls||0)}次</span>
+          </div>`).join('')}
+      </div>`;
+    }).join('');
   }
 }
+
 
 function renderPie(canvasId,legendId,items,labelKey,valKey,colors){
   const el=document.getElementById(canvasId);
@@ -1296,6 +1317,7 @@ function renderUpstreamDist(data){
   }).join('')||'<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';
 }
 
+
 // ─── Providers ─────────────────────────────────────────────
 async function loadProviders(){
   try{
@@ -1306,6 +1328,7 @@ async function loadProviders(){
         <td>${p.id}</td>
         <td><code style="color:var(--accent-teal)">${p.name}</code></td>
         <td>${p.display_name||'—'}</td>
+        <td><span class="badge ${p.provider_type==='agent'?'badge-purple':'badge-blue'}">${p.provider_type==='agent'?'智能体':'模型'}</span></td>
         <td><span class="td-mono" style="color:var(--text-secondary)">${p.base_url||'—'}</span></td>
         <td>${p.max_concurrency||50}</td>
         <td>${p.timeout_seconds||120}</td>
@@ -1314,37 +1337,59 @@ async function loadProviders(){
           <button class="btn btn-sm" onclick='editProvider(${JSON.stringify(p)})'>编辑</button>
           <button class="btn btn-sm btn-danger" onclick='deleteProvider(${p.id},"${p.display_name||p.name}")'>删除</button>
         </td>
-      </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+      </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
   }catch(e){toast('加载供应商失败: '+e.message,'err')}
+}
+
+function toggleProviderTypeFields(){
+  const t=document.getElementById('pv-type').value;
+  const keyGroup=document.getElementById('pv-key-group');
+  const agentHint=document.getElementById('pv-agent-hint');
+  if(t==='agent'){
+    keyGroup.style.display='none';
+    agentHint.style.display='block';
+  } else {
+    keyGroup.style.display='block';
+    agentHint.style.display='none';
+  }
 }
 
 function openProviderModal(pv=null){
   document.getElementById('modal-provider-title').textContent=pv?'编辑供应商':'新增供应商';
   document.getElementById('pv-id').value=pv?pv.id:'';
   document.getElementById('pv-name').value=pv?pv.name:'';
+  document.getElementById('pv-name').readOnly=!!pv; // 编辑时不可改名称
   document.getElementById('pv-display').value=pv?(pv.display_name||''):'';
+  document.getElementById('pv-type').value=pv?(pv.provider_type||'model'):'model';
   document.getElementById('pv-url').value=pv?(pv.base_url||''):'';
   document.getElementById('pv-key').value='';
   document.getElementById('pv-concurrency').value=pv?(pv.max_concurrency||50):50;
   document.getElementById('pv-timeout').value=pv?(pv.timeout_seconds||120):120;
   document.getElementById('pv-remark').value=pv?(pv.remark||''):'';
+  toggleProviderTypeFields();
   openModal('modal-provider');
 }
 function editProvider(pv){openProviderModal(pv);}
 
 async function submitProvider(){
   const id=document.getElementById('pv-id').value;
+  const pvType=document.getElementById('pv-type').value;
   const body={
     name:document.getElementById('pv-name').value.trim(),
     display_name:document.getElementById('pv-display').value.trim(),
+    provider_type:pvType,
     base_url:document.getElementById('pv-url').value.trim(),
+    api_key:'',
     max_concurrency:+document.getElementById('pv-concurrency').value,
     timeout_seconds:+document.getElementById('pv-timeout').value,
     remark:document.getElementById('pv-remark').value.trim(),
     is_enabled:true
   };
-  const key=document.getElementById('pv-key').value.trim();
-  if(key) body.api_key=key;
+  // 只有模型供应商才传 api_key
+  if(pvType==='model'){
+    const key=document.getElementById('pv-key').value.trim();
+    if(key) body.api_key=key;
+  }
   try{
     if(id) await api('PUT','/admin/providers/'+id,body);
     else await api('POST','/admin/providers',body);
@@ -1355,13 +1400,15 @@ async function submitProvider(){
 }
 
 async function deleteProvider(id, name){
-  if(!confirm(`确认删除供应商「${name}」？\n\n若该供应商下仍有关联模型，删除将被拒绝。`)) return;
+  if(!confirm(`确认删除供应商「${name}」？\n\n若该供应商下仍有关联模型或智能体，删除将被拒绝。`)) return;
   try{
     await api('DELETE','/admin/providers/'+id);
     toast('供应商已删除');
     loadProviders();
   }catch(e){toast('删除失败: '+e.message,'err')}
 }
+
+
 
 
 // ─── Models ────────────────────────────────────────────────
@@ -1484,71 +1531,103 @@ async function loadAgents(){
     document.getElementById('ag-tokens').textContent=fmtToken(totalTokens);
     document.getElementById('ag-cost').textContent='¥'+totalCost.toFixed(4);
 
-    const typeNames={coze:'Coze',dify:'Dify',custom:'自定义'};
-    const typeColors={coze:'badge-blue',dify:'badge-green',custom:'badge-gray'};
-    const tbody=document.getElementById('agents-tbody');
-    tbody.innerHTML=d.items.map(a=>`
-      <tr>
-        <td>${a.id}</td>
-        <td>
-          <span style="font-weight:500">${a.display_name||a.name}</span>
-          <div style="font-size:11px;color:var(--text-muted)">${a.name}</div>
-        </td>
-        <td><span class="badge ${typeColors[a.agent_type]||'badge-gray'}">${typeNames[a.agent_type]||a.agent_type}</span></td>
-        <td style="font-family:monospace;font-size:12px;color:var(--accent-teal)">${a.bot_id||'—'}</td>
-        <td>${fmtNum(a.total_calls||0)}</td>
-        <td>${fmtToken(a.total_tokens||0)}</td>
-        <td style="color:var(--accent-orange)">¥${(a.total_cost||0).toFixed(4)}</td>
-        <td>
-          <label class="switch" title="${a.is_enabled?'点击禁用':'点击启用'}">
-            <input type="checkbox" ${a.is_enabled?'checked':''} onchange="toggleAgent(${a.id},this.checked)">
-            <span class="slider"></span>
-          </label>
-        </td>
-        <td style="white-space:nowrap">
-          <button class="btn btn-sm" onclick='editAgent(${JSON.stringify(a)})'>编辑</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteAgent(${a.id},'${a.name||''}')">删除</button>
-        </td>
-      </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无智能体，点击上方按钮添加</td></tr>';
+    // 按供应商分组
+    const groups={};
+    d.items.forEach(a=>{
+      if(!groups[a.provider_name]) groups[a.provider_name]=[];
+      groups[a.provider_name].push(a);
+    });
+
+    const container=document.getElementById('agents-groups');
+    if(d.items.length===0){
+      container.innerHTML='<div style="text-align:center;color:var(--text-muted);padding:40px">暂无智能体，请先添加智能体供应商（如 Coze/Dify），然后点击「新增智能体」</div>';
+      return;
+    }
+
+    const provColors={'coze':'badge-purple','dify':'badge-green','custom':'badge-blue'};
+    container.innerHTML=Object.entries(groups).map(([prov,items])=>`
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:10px 12px;background:var(--bg-card2);border-radius:8px;border:1px solid var(--border)">
+          <span class="badge ${provColors[prov]||'badge-blue'}" style="font-size:13px;padding:3px 10px">${prov.toUpperCase()}</span>
+          <span style="font-size:13px;color:var(--text-secondary)">${items.length} 个智能体</span>
+          <span style="flex:1"></span>
+          <span style="font-size:12px;color:var(--text-muted)">总调用: ${fmtNum(items.reduce((s,a)=>s+(a.total_calls||0),0))}</span>
+          <span style="font-size:12px;color:var(--text-muted);margin-left:12px">总 Token: ${fmtToken(items.reduce((s,a)=>s+(a.total_tokens||0),0))}</span>
+          <button class="btn btn-sm" style="margin-left:12px" onclick="openAgentModal(null,'${prov}')">+ 添加至此供应商</button>
+        </div>
+        <div class="tbl-wrap" style="margin-top:0">
+          <table>
+            <thead><tr>
+              <th>ID</th><th>智能体名称</th><th>Bot / App ID</th>
+              <th>调用次数</th><th>Token</th><th>费用</th><th>状态</th><th>操作</th>
+            </tr></thead>
+            <tbody>
+            ${items.map(a=>`
+              <tr>
+                <td>${a.id}</td>
+                <td>
+                  <span style="font-weight:500">${a.display_name||a.name}</span>
+                  <div style="font-size:11px;color:var(--text-muted)">${a.name}</div>
+                  ${a.description?`<div style="font-size:11px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">${a.description}</div>`:''}
+                </td>
+                <td style="font-family:monospace;font-size:12px;color:var(--accent-teal)">${a.bot_id||'—'}</td>
+                <td>${fmtNum(a.total_calls||0)}</td>
+                <td>${fmtToken(a.total_tokens||0)}</td>
+                <td style="color:var(--accent-orange)">¥${(a.total_cost||0).toFixed(4)}</td>
+                <td>
+                  <label class="switch" title="${a.is_enabled?'点击禁用':'点击启用'}">
+                    <input type="checkbox" ${a.is_enabled?'checked':''} onchange="toggleAgent(${a.id},this.checked)">
+                    <span class="slider"></span>
+                  </label>
+                </td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-sm" onclick='editAgent(${JSON.stringify(a).replace(/'/g,"&#39;")})'>编辑</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteAgent(${a.id},'${(a.display_name||a.name).replace(/'/g,"&#39;")}')">删除</button>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`).join('');
   }catch(e){toast('加载智能体失败: '+e.message,'err')}
 }
 
-async function openAgentModal(ag=null){
+async function openAgentModal(ag=null, defaultProvider=''){
   document.getElementById('modal-agent-title').textContent=ag?'编辑智能体':'新增智能体';
   document.getElementById('ag-id').value=ag?ag.id:'';
   document.getElementById('ag-name').value=ag?ag.name:'';
-  document.getElementById('ag-name').readOnly=!!ag; // 编辑时不可改名称
+  document.getElementById('ag-name').readOnly=!!ag;
   document.getElementById('ag-display').value=ag?ag.display_name:'';
-  document.getElementById('ag-type').value=ag?ag.agent_type:'coze';
   document.getElementById('ag-bot-id').value=ag?ag.bot_id||'':'';
-  document.getElementById('ag-api-key').value=''; // 不回填Key
+  document.getElementById('ag-api-key').value='';
   document.getElementById('ag-url').value=ag?ag.base_url||'':'';
   document.getElementById('ag-desc').value=ag?ag.description||'':'';
   document.getElementById('ag-remark').value=ag?ag.remark||'':'';
-  toggleAgentTypeFields();
+  // 加载智能体供应商下拉
+  try{
+    const provData=await api('GET','/admin/agents/providers');
+    const sel=document.getElementById('ag-provider');
+    if(provData.items.length===0){
+      sel.innerHTML='<option value="">— 暂无智能体供应商，请先在供应商管理中添加 —</option>';
+    } else {
+      sel.innerHTML=provData.items.map(p=>
+        `<option value="${p.name}">${p.display_name||p.name} (${p.name})</option>`
+      ).join('');
+      // 优先选 ag.provider_name 或 defaultProvider
+      const target=ag?ag.provider_name:defaultProvider;
+      if(target) sel.value=target;
+    }
+  }catch(e){ document.getElementById('ag-provider').innerHTML='<option value="">加载失败</option>'; }
   openModal('modal-agent');
 }
 function editAgent(ag){openAgentModal(ag);}
 
-function toggleAgentTypeFields(){
-  const t=document.getElementById('ag-type').value;
-  const botGroup=document.getElementById('ag-bot-group');
-  const urlGroup=document.getElementById('ag-url-group');
-  if(t==='custom'){
-    botGroup.style.display='none';
-    urlGroup.style.display='block';
-  } else {
-    botGroup.style.display='block';
-    urlGroup.style.display='none';
-  }
-}
-
 async function submitAgent(){
   const id=document.getElementById('ag-id').value;
   const body={
+    provider_name:document.getElementById('ag-provider').value,
     name:document.getElementById('ag-name').value.trim(),
     display_name:document.getElementById('ag-display').value.trim(),
-    agent_type:document.getElementById('ag-type').value,
     bot_id:document.getElementById('ag-bot-id').value.trim()||null,
     base_url:document.getElementById('ag-url').value.trim()||null,
     description:document.getElementById('ag-desc').value.trim()||null,
@@ -1556,6 +1635,9 @@ async function submitAgent(){
   };
   const apiKey=document.getElementById('ag-api-key').value.trim();
   if(apiKey) body.api_key=apiKey;
+  if(!body.provider_name){toast('请选择所属供应商','err');return;}
+  if(!body.name){toast('请输入智能体名称','err');return;}
+  if(!body.display_name){toast('请输入显示名称','err');return;}
   try{
     if(id) await api('PUT','/admin/agents/'+id,body);
     else await api('POST','/admin/agents',body);
@@ -1582,6 +1664,7 @@ async function deleteAgent(id, name){
 }
 
 // ─── API Keys ──────────────────────────────────────────────
+
 let keysTotal=0;
 async function loadKeys(pg=1){
   keysCurrentPage=pg;
@@ -1631,13 +1714,18 @@ async function openKeyModal(k=null){
   // models multi-select: 渲染 checkbox-select
   const selected=k?(Array.isArray(k.allowed_models)?k.allowed_models:[]):[];
   try{
-    const md=await api('GET','/admin/models');
-    const items=md&&Array.isArray(md.items)?md.items:[];
-    if(items.length===0){
-      document.getElementById('ms-options-list').innerHTML=
-        '<div style="padding:12px;color:var(--text-muted);font-size:13px;text-align:center">暂无可用模型，请先在模型管理中添加</div>';
-    } else {
-      document.getElementById('ms-options-list').innerHTML=items.map(m=>
+    // 同时加载模型和智能体到选择器
+    const [md, agData] = await Promise.allSettled([
+      api('GET','/admin/models'),
+      api('GET','/admin/agents')
+    ]);
+    const models = (md.status==='fulfilled'&&md.value&&Array.isArray(md.value.items))?md.value.items:[];
+    const agents = (agData.status==='fulfilled'&&agData.value&&Array.isArray(agData.value.items))?agData.value.items:[];
+
+    let optHtml='';
+    if(models.length>0){
+      optHtml+=`<div style="padding:6px 12px;font-size:11px;color:var(--text-muted);background:var(--bg-card2);border-bottom:1px solid var(--border);letter-spacing:.05em">— 模型 —</div>`;
+      optHtml+=models.map(m=>
         `<div class="checkbox-select-opt${selected.includes(m.model_alias)?' selected':''}" data-alias="${m.model_alias}" onclick="toggleModelOpt('${m.model_alias.replace(/'/g,"\\'")}')">
           <input type="checkbox"${selected.includes(m.model_alias)?' checked':''} onclick="event.stopPropagation();toggleModelOpt('${m.model_alias.replace(/'/g,"\\'")}')">
           <span class="checkbox-select-opt-alias">${m.model_alias}</span>
@@ -1645,6 +1733,24 @@ async function openKeyModal(k=null){
         </div>`
       ).join('');
     }
+    if(agents.length>0){
+      optHtml+=`<div style="padding:6px 12px;font-size:11px;color:var(--text-muted);background:var(--bg-card2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);letter-spacing:.05em">— 智能体 —</div>`;
+      optHtml+=agents.map(a=>{
+        const alias='agent:'+a.name; // 用 agent: 前缀区分
+        return `<div class="checkbox-select-opt${selected.includes(alias)?' selected':''}" data-alias="${alias}" onclick="toggleModelOpt('${alias.replace(/'/g,"\\'")}')">
+          <input type="checkbox"${selected.includes(alias)?' checked':''} onclick="event.stopPropagation();toggleModelOpt('${alias.replace(/'/g,"\\'")}')">
+          <span class="checkbox-select-opt-alias">🤖 ${a.display_name||a.name}</span>
+          <span class="checkbox-select-opt-provider">${a.provider_name}</span>
+        </div>`;
+      }).join('');
+    }
+    if(!optHtml){
+      document.getElementById('ms-options-list').innerHTML=
+        '<div style="padding:12px;color:var(--text-muted);font-size:13px;text-align:center">暂无可用模型或智能体，请先添加</div>';
+    } else {
+      document.getElementById('ms-options-list').innerHTML=optHtml;
+    }
+
   }catch(e){
     document.getElementById('ms-options-list').innerHTML=
       '<div style="padding:12px;color:var(--accent-red);font-size:13px;text-align:center">加载失败</div>';

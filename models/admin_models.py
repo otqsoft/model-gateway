@@ -93,8 +93,9 @@ class ApiKeyCreated(ApiKeyOut):
 class ProviderCreate(BaseModel):
     name: str
     display_name: str
+    provider_type: str = Field(default="model", description="厂商类型: model（模型厂商）/ agent（智能体厂商）")
     base_url: str
-    api_key: str             # 明文，存储时加密
+    api_key: str = ""        # 模型厂商明文Key，存储时加密；智能体厂商留空
     max_concurrency: int = 50
     timeout_seconds: int = 120
     extra_headers: Optional[dict] = None
@@ -103,6 +104,7 @@ class ProviderCreate(BaseModel):
 
 class ProviderUpdate(BaseModel):
     display_name: Optional[str] = None
+    provider_type: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
     max_concurrency: Optional[int] = None
@@ -116,6 +118,7 @@ class ProviderOut(BaseModel):
     id: int
     name: str
     display_name: str
+    provider_type: str        # model / agent
     base_url: str
     max_concurrency: int
     timeout_seconds: int
@@ -218,12 +221,12 @@ class BillingSummary(BaseModel):
 # ── 智能体管理 ─────────────────────────────────────────────────
 
 class AgentCreate(BaseModel):
-    name: str
-    agent_type: str = Field(description="智能体类型: coze / dify / custom")
+    provider_name: str = Field(description="所属供应商名称（必须是 provider_type=agent 的供应商）")
+    name: str = Field(description="智能体唯一标识（全局唯一，英文）")
     display_name: str
     bot_id: Optional[str] = None
-    api_key: Optional[str] = None
-    base_url: Optional[str] = None
+    api_key: Optional[str] = None   # 该智能体专属Key，明文传入，存储时加密
+    base_url: Optional[str] = None  # 覆盖供应商默认地址时使用
     description: Optional[str] = None
     config: Optional[dict] = None
     remark: Optional[str] = None
@@ -231,7 +234,6 @@ class AgentCreate(BaseModel):
 
 class AgentUpdate(BaseModel):
     display_name: Optional[str] = None
-    agent_type: Optional[str] = None
     bot_id: Optional[str] = None
     api_key: Optional[str] = None
     base_url: Optional[str] = None
@@ -243,8 +245,8 @@ class AgentUpdate(BaseModel):
 
 class AgentOut(BaseModel):
     id: int
+    provider_name: str          # 所属供应商（如 coze / dify）
     name: str
-    agent_type: str
     display_name: str
     bot_id: Optional[str]
     base_url: Optional[str]

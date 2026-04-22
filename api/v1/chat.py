@@ -24,7 +24,8 @@ from crud.billing import create_billing_record
 from crud.api_keys import increment_key_stats
 from crud.models import get_model_by_alias
 from crud.providers import get_provider_by_name
-from providers.registry import get_provider
+from crud.agents import get_agent_by_name, increment_agent_stats
+from providers.registry import get_provider, get_agent_provider
 from providers.base import ProviderException, TimeoutException
 
 logger = logging.getLogger("gateway.chat")
@@ -57,6 +58,11 @@ async def chat_completions(
                 }
             },
         )
+
+    # ── 3a. 判断是否为智能体请求（alias 以 "agent:" 前缀区分）────
+    is_agent_request = model_alias.startswith("agent:")
+    if is_agent_request:
+        return await _handle_agent_request(request, body, key_row, model_alias)
 
     # ── 3. 查找模型映射 ─────────────────────────────────────────
     model_row = await get_model_by_alias(model_alias)
@@ -209,6 +215,232 @@ async def chat_completions(
             status_code=500,
             detail={"error": {"message": "内部服务错误", "type": "internal_error"}},
         )
+
+
+async def _handle_agent_request(
+    request: Request,
+    body: ChatCompletionRequest,
+    key_row: ApiKeyRow,
+    model_alias: str,
+) -> JSONResponse | StreamingResponse:
+    """
+    处理 agent:xxx 格式的智能体调用请求。
+    - model_alias 格式：agent:<agent_name>
+    - 从 agent_configs 取智能体配置（含专属 api_key、bot_id）
+    - 从关联供应商取 base_url / timeout / max_concurrency
+    - 调用 get_agent_provider() 构建适配器（使用智能体的 api_key 而非供应商的 api_key）
+    """
+    agent_name = model_alias[len("agent:"):]   # 去掉前缀
+
+    # 查找智能体配置
+    agent_row = await get_agent_by_name(agent_name)
+    if not agent_row or not agent_row.get("is_enabled"):
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "message": f"智能体 '{agent_name}' 不存在或已禁用",
+                    "type": "invalid_request_error",
+                }
+            },
+        )
+
+    provider_name = agent_row["provider_name"]
+
+    # 查找智能体供应商获取并发配置
+    provider_row = await get_provider_by_name(provider_name)
+    if not provider_row or not provider_row.get("is_enabled"):
+        raise HTTPException(
+            status_code=503,
+            detail={"error": {"message": f"智能体供应商 '{provider_name}' 不可用"}},
+        )
+    provider_max_concurrency = provider_row.get("max_concurrency", 20)
+
+    # 创建请求日志（pending）
+    request_id = new_request_id()
+    client_ip = request.client.host if request.client else "unknown"
+    is_stream = bool(body.stream)
+
+    await create_request_log(
+        request_id=request_id,
+        api_key_id=key_row.id,
+        key_id=key_row.key_id,
+        model_alias=model_alias,
+        is_stream=is_stream,
+        client_ip=client_ip,
+    )
+
+    start_ms = now_ms()
+    guard = ConcurrencyGuard(
+        key_id=key_row.key_id,
+        key_max_concurrency=key_row.max_concurrency,
+        provider_name=provider_name,
+        provider_max_concurrency=provider_max_concurrency,
+    )
+
+    try:
+        async with guard:
+            await update_log_running(request_id, provider_name, agent_name)
+
+            # 用智能体自己的 api_key 构建 Provider
+            provider = await get_agent_provider(agent_row, provider_row)
+
+            # upstream_model 对 Coze 来说就是 bot_id，对 Dify 来说无实质意义
+            upstream_model = agent_row.get("bot_id") or agent_name
+
+            if is_stream:
+                return StreamingResponse(
+                    _agent_stream_generator(
+                        request_id=request_id,
+                        provider=provider,
+                        body=body,
+                        upstream_model=upstream_model,
+                        model_alias=model_alias,
+                        provider_name=provider_name,
+                        key_row=key_row,
+                        agent_row=agent_row,
+                        start_ms=start_ms,
+                    ),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "X-Accel-Buffering": "no",
+                        "X-Request-Id": request_id,
+                    },
+                )
+            else:
+                result = await provider.chat_completion(body, upstream_model)
+                duration_ms = calc_duration_ms(start_ms)
+
+                usage = result.usage
+                await update_log_success(
+                    request_id=request_id,
+                    upstream_status=200,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    ttft_ms=None,
+                    duration_ms=duration_ms,
+                )
+
+                # 计费 & 智能体统计（价格按 0 处理，或后续可在 agent_configs 加价格字段）
+                bill = await create_billing_record(
+                    request_id=request_id,
+                    api_key_id=key_row.id,
+                    key_id=key_row.key_id,
+                    model_alias=model_alias,
+                    provider_name=provider_name,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    input_price=0.0,
+                    output_price=0.0,
+                )
+                await increment_key_stats(key_row.id, bill["total_tokens"], bill["total_cost"])
+                await increment_agent_stats(agent_row["id"], bill["total_tokens"], bill["total_cost"])
+
+                result.model = model_alias
+                return JSONResponse(
+                    content=result.model_dump(),
+                    headers={"X-Request-Id": request_id},
+                )
+
+    except RateLimitExceeded as e:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, None, f"Rate limited: {e.level}", duration_ms)
+        raise HTTPException(
+            status_code=429,
+            detail={"error": {"message": f"并发限流超出，请稍后重试", "type": "rate_limit_error"}},
+        )
+    except TimeoutException:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, 0, "Request timeout", duration_ms, is_timeout=True)
+        raise HTTPException(status_code=504, detail={"error": {"message": "上游请求超时"}})
+    except ProviderException as e:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, e.upstream_status, str(e), duration_ms)
+        raise HTTPException(status_code=e.status_code, detail={"error": {"message": str(e)}})
+    except HTTPException:
+        raise
+    except Exception as e:
+        duration_ms = calc_duration_ms(start_ms)
+        await update_log_error(request_id, None, str(e), duration_ms)
+        logger.exception("[%s] 智能体调用未知错误: %s", request_id, e)
+        raise HTTPException(status_code=500, detail={"error": {"message": "内部服务错误"}})
+
+
+async def _agent_stream_generator(
+    request_id: str,
+    provider,
+    body: ChatCompletionRequest,
+    upstream_model: str,
+    model_alias: str,
+    provider_name: str,
+    key_row: ApiKeyRow,
+    agent_row: dict,
+    start_ms: int,
+) -> AsyncGenerator[bytes, None]:
+    """智能体流式 SSE 生成器（与模型路由逻辑相同，额外累计 agent 统计）"""
+    ttft_ms: Optional[int] = None
+    prompt_tokens = 0
+    completion_tokens = 0
+    upstream_status = 200
+    error_msg: Optional[str] = None
+    is_error = False
+    first_chunk = True
+
+    try:
+        stream_gen = await provider.chat_completion(body, upstream_model)
+
+        async for raw_line in stream_gen:
+            if first_chunk and raw_line.startswith("data:"):
+                ttft_ms = calc_duration_ms(start_ms)
+                first_chunk = False
+
+            if raw_line.startswith("data:") and not raw_line.startswith("data: [DONE]"):
+                try:
+                    chunk_str = raw_line[5:].strip()
+                    chunk = json.loads(chunk_str)
+                    usage = chunk.get("usage")
+                    if usage:
+                        prompt_tokens = usage.get("prompt_tokens", prompt_tokens)
+                        completion_tokens = usage.get("completion_tokens", completion_tokens)
+                    chunk["model"] = model_alias
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n".encode("utf-8")
+                    continue
+                except Exception:
+                    pass
+
+            yield f"{raw_line}\n\n".encode("utf-8") if not raw_line.endswith("\n") else raw_line.encode("utf-8")
+
+        yield b"data: [DONE]\n\n"
+
+    except TimeoutException:
+        is_error = True; upstream_status = 0; error_msg = "Request timeout"
+        yield b"data: {\"error\":{\"message\":\"\\u4e0a\\u6e38\\u8bf7\\u6c42\\u8d85\\u65f6\"}}\n\n"
+    except ProviderException as e:
+        is_error = True; upstream_status = e.upstream_status; error_msg = str(e)
+        yield f"data: {json.dumps({'error':{'message':str(e)}}, ensure_ascii=False)}\n\n".encode("utf-8")
+    except Exception as e:
+        is_error = True; upstream_status = 0; error_msg = str(e)
+        logger.exception("[%s] 智能体流式异常: %s", request_id, e)
+        yield b"data: {\"error\":{\"message\":\"\\u5185\\u90e8\\u670d\\u52a1\\u5668\\u9519\\u8bef\"}}\n\n"
+    finally:
+        duration_ms = calc_duration_ms(start_ms)
+        if is_error:
+            await update_log_error(request_id, upstream_status, error_msg or "stream error", duration_ms,
+                                   is_timeout=(upstream_status == 0 and error_msg == "Request timeout"))
+        else:
+            await update_log_success(request_id=request_id, upstream_status=upstream_status,
+                                     prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+                                     ttft_ms=ttft_ms, duration_ms=duration_ms)
+            if prompt_tokens + completion_tokens > 0:
+                bill = await create_billing_record(
+                    request_id=request_id, api_key_id=key_row.id, key_id=key_row.key_id,
+                    model_alias=model_alias, provider_name=provider_name,
+                    prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+                    input_price=0.0, output_price=0.0,
+                )
+                await increment_key_stats(key_row.id, bill["total_tokens"], bill["total_cost"])
+                await increment_agent_stats(agent_row["id"], bill["total_tokens"], bill["total_cost"])
 
 
 async def _stream_generator(

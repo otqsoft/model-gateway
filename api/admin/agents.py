@@ -8,6 +8,7 @@ from crud.agents import (
     list_agents, get_agent_by_id,
     create_agent, update_agent, delete_agent,
 )
+from crud.providers import list_providers
 
 
 router = APIRouter()
@@ -17,8 +18,8 @@ def _agent_to_out(row: dict) -> AgentOut:
     """将数据库行转换为输出模型"""
     return AgentOut(
         id=row["id"],
+        provider_name=row["provider_name"],
         name=row["name"],
-        agent_type=row["agent_type"],
         display_name=row["display_name"],
         bot_id=row.get("bot_id"),
         base_url=row.get("base_url"),
@@ -34,11 +35,21 @@ def _agent_to_out(row: dict) -> AgentOut:
 
 
 @router.get("/admin/agents", dependencies=[Depends(authenticate_admin)])
-async def get_agents(enabled_only: bool = Query(False)) -> dict:
-    """列出所有智能体"""
-    rows = await list_agents(enabled_only=enabled_only)
+async def get_agents(
+    enabled_only: bool = Query(False),
+    provider_name: str = Query(None, description="按供应商过滤"),
+) -> dict:
+    """列出所有智能体，可按供应商过滤"""
+    rows = await list_agents(enabled_only=enabled_only, provider_name=provider_name)
     items = [_agent_to_out(r).model_dump() for r in rows]
     return {"items": items, "total": len(items)}
+
+
+@router.get("/admin/agents/providers", dependencies=[Depends(authenticate_admin)])
+async def get_agent_providers() -> dict:
+    """获取所有智能体类型的供应商列表（provider_type=agent）"""
+    rows = await list_providers(provider_type="agent")
+    return {"items": rows, "total": len(rows)}
 
 
 @router.post("/admin/agents", dependencies=[Depends(authenticate_admin)])

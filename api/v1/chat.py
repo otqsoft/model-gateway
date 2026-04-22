@@ -503,7 +503,8 @@ async def _stream_generator(
             yield f"{raw_line}\n\n".encode("utf-8") if not raw_line.endswith("\n") else raw_line.encode("utf-8")
 
         # 发送 [DONE]
-        yield b"data: [DONE]\n\n"
+        # yield b"data: [DONE]\n\n"
+        return
 
     except TimeoutException:
         is_error = True

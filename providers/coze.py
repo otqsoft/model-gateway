@@ -342,7 +342,7 @@ class CozeProvider(BaseProvider):
                                 full_content += msg_content
                                 choice = {
                                     "index": idx,
-                                    "delta": {"content": msg_content},
+                                    "delta": event_data, # {"content": msg_content},
                                     "finish_reason": None,
                                 }
                                 chunk = {

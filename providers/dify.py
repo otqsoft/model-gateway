@@ -273,7 +273,7 @@ class DifyProvider(BaseProvider):
                                 "model": model,
                                 "choices": [{
                                     "index": idx,
-                                    "delta": {"content": msg_content},
+                                    "delta": event_data, # {"content": msg_content},
                                     "finish_reason": None,
                                 }],
                             }

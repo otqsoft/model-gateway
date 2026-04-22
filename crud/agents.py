@@ -152,7 +152,7 @@ async def get_agent_usage_stats() -> List[dict]:
                 SUM(a.total_tokens) AS total_tokens,
                 SUM(a.total_cost)   AS total_cost
             FROM agent_configs a
-            LEFT JOIN model_providers p ON p.name = a.provider_name
+            LEFT JOIN model_providers p ON p.name COLLATE utf8mb4_unicode_ci = a.provider_name COLLATE utf8mb4_unicode_ci
             GROUP BY a.provider_name, p.display_name
             ORDER BY total_calls DESC
         """)

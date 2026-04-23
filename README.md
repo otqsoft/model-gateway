@@ -207,10 +207,10 @@ Dify 通过 `response_mode` 控制返回方式：
 └─────────────────────────────────────────────┘
   │
   ▼
-┌──────────┐ ┌──────────┐ ┌───────┐ ┌───────┐
-│  DeepSeek│ │  Coze    │ │ Dify  │ │  ...  │
-│ Provider │ │ Provider │ │Provider│        │
-└──────────┘ └──────────┘ └───────┘ └───────┘
+┌──────────┐ ┌──────────┐ ┌────────┐ ┌───────┐
+│  DeepSeek│ │  Coze    │ │ Dify   │ │  ...  │
+│ Provider │ │ Provider │ │Provider│ │       │
+└──────────┘ └──────────┘ └────────┘ └───────┘
   │            │            │
   └────────────┴────────────┘
               │ 上游 API
@@ -234,7 +234,28 @@ Dify 通过 `response_mode` 控制返回方式：
 | **监控面板** | QPS / 错误率 / Token 消耗趋势图 |
 | **计费记录** | 按 Key / 模型 / 时间段查询费用明细 |
 
-
+<table>
+    <tr>
+        <td><img src="static/images/1.png"/></td>
+        <td><img src="static/images/2.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/3.png"/></td>
+        <td><img src="static/images/4.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/5.png"/></td>
+        <td><img src="static/images/6.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/7.png"/></td>
+        <td><img src="static/images/8.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/9.png"/></td>
+        <td><img src="static/images/10.png"/></td>
+    </tr>
+</table>
 
 ## 限流机制
 
@@ -333,6 +354,23 @@ server {
     }
 }
 ```
+
+### Cherry Studio 中调用
+
+<table>
+    <tr>
+        <td><img src="static/images/c1.png"/></td>
+        <td><img src="static/images/c2.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/c3.png"/></td>
+        <td><img src="static/images/c4.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/c5.png"/></td>
+        <td><img src="static/images/c6.png"/></td>
+    </tr>
+</table>
 
 
 

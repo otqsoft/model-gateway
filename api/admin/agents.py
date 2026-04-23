@@ -34,7 +34,7 @@ def _agent_to_out(row: dict) -> AgentOut:
     )
 
 
-@router.get("/admin/agents", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/agents", dependencies=[Depends(authenticate_admin)], summary="查询智能体列表", tags=["智能体"])
 async def get_agents(
     enabled_only: bool = Query(False),
     provider_name: str = Query(None, description="按供应商过滤"),
@@ -45,21 +45,21 @@ async def get_agents(
     return {"items": items, "total": len(items)}
 
 
-@router.get("/admin/agents/providers", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/agents/providers", dependencies=[Depends(authenticate_admin)], summary="查询智能体供应商列表", tags=["智能体"])
 async def get_agent_providers() -> dict:
     """获取所有智能体类型的供应商列表（provider_type=agent）"""
     rows = await list_providers(provider_type="agent")
     return {"items": rows, "total": len(rows)}
 
 
-@router.post("/admin/agents", dependencies=[Depends(authenticate_admin)])
+@router.post("/admin/agents", dependencies=[Depends(authenticate_admin)], summary="新增智能体", tags=["智能体"])
 async def add_agent(data: AgentCreate) -> dict:
     """新增智能体"""
     row = await create_agent(data)
     return _agent_to_out(row).model_dump()
 
 
-@router.get("/admin/agents/{agent_id}", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/agents/{agent_id}", dependencies=[Depends(authenticate_admin)], summary="查询智能体详情", tags=["智能体"])
 async def get_agent_detail(agent_id: int) -> dict:
     """获取智能体详情"""
     row = await get_agent_by_id(agent_id)
@@ -68,7 +68,7 @@ async def get_agent_detail(agent_id: int) -> dict:
     return _agent_to_out(row).model_dump()
 
 
-@router.put("/admin/agents/{agent_id}", dependencies=[Depends(authenticate_admin)])
+@router.put("/admin/agents/{agent_id}", dependencies=[Depends(authenticate_admin)], summary="更新智能体", tags=["智能体"])
 async def modify_agent(agent_id: int, data: AgentUpdate) -> dict:
     """更新智能体"""
     row = await update_agent(agent_id, data)
@@ -77,7 +77,7 @@ async def modify_agent(agent_id: int, data: AgentUpdate) -> dict:
     return _agent_to_out(row).model_dump()
 
 
-@router.patch("/admin/agents/{agent_id}/enable", dependencies=[Depends(authenticate_admin)])
+@router.patch("/admin/agents/{agent_id}/enable", dependencies=[Depends(authenticate_admin)], summary="启用/禁用智能体", tags=["智能体"])
 async def set_agent_enabled(
     agent_id: int,
     is_enabled: bool = Query(..., description="true=启用 false=禁用"),
@@ -89,7 +89,7 @@ async def set_agent_enabled(
     return {"message": "已更新", "id": agent_id, "is_enabled": is_enabled}
 
 
-@router.delete("/admin/agents/{agent_id}", dependencies=[Depends(authenticate_admin)])
+@router.delete("/admin/agents/{agent_id}", dependencies=[Depends(authenticate_admin)], summary="删除智能体", tags=["智能体"])
 async def remove_agent(agent_id: int) -> dict:
     """删除智能体"""
     ok = await delete_agent(agent_id)

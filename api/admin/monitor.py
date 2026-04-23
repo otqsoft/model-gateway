@@ -14,7 +14,7 @@ from crud.agents import get_agent_usage_stats, get_agent_detail_stats
 router = APIRouter()
 
 
-@router.get("/admin/monitor/status", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/monitor/status", dependencies=[Depends(authenticate_admin)], summary="查询实时请求状态分布", tags=["监控"])
 async def status_distribution() -> dict:
     """实时请求状态分布"""
     rows = await get_status_distribution()
@@ -29,21 +29,21 @@ async def status_distribution() -> dict:
     return {"status_distribution": result, "total": total}
 
 
-@router.get("/admin/monitor/latency", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/monitor/latency", dependencies=[Depends(authenticate_admin)], summary="查询实时请求耗时分布", tags=["监控"])
 async def latency_distribution() -> dict:
     """耗时分布"""
     rows = await get_latency_distribution()
     return {"latency_distribution": rows}
 
 
-@router.get("/admin/monitor/upstream", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/monitor/upstream", dependencies=[Depends(authenticate_admin)], summary="查询实时上游状态码分布", tags=["监控"])
 async def upstream_status() -> dict:
     """上游状态码分布"""
     rows = await get_upstream_status_distribution()
     return {"upstream_status_distribution": rows}
 
 
-@router.get("/admin/monitor/agents", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/monitor/agents", dependencies=[Depends(authenticate_admin)], summary="查询实时智能体使用统计", tags=["监控"])
 async def agent_stats() -> dict:
     """
     智能体使用统计（按供应商聚合）。

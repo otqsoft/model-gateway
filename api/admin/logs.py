@@ -10,7 +10,7 @@ from crud.request_logs import get_log_by_request_id, query_logs
 router = APIRouter()
 
 
-@router.get("/admin/logs", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/logs", dependencies=[Depends(authenticate_admin)], summary="查询请求日志", tags=["日志"])
 async def get_logs(
     request_id: Optional[str] = Query(None),
     key_id: Optional[str] = Query(None),
@@ -56,7 +56,7 @@ async def get_logs(
     }
 
 
-@router.get("/admin/logs/{request_id}", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/logs/{request_id}", dependencies=[Depends(authenticate_admin)], summary="查询请求日志详情", tags=["日志"])
 async def get_log_detail(request_id: str) -> dict:
     """按 request_id 查询单条日志详情"""
     row = await get_log_by_request_id(request_id)

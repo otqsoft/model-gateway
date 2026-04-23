@@ -10,7 +10,7 @@ from models.admin_models import OverviewStats
 router = APIRouter()
 
 
-@router.get("/admin/overview", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/overview", dependencies=[Depends(authenticate_admin)], summary="查询总览统计", tags=["仪表盘"])
 async def overview() -> dict:
     """
     总览统计：请求量、成功率、Token、费用、平均耗时

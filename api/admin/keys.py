@@ -43,7 +43,7 @@ def _key_to_out(key_row: ApiKeyRow) -> ApiKeyOut:
         raise
 
 
-@router.get("/admin/keys", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/keys", dependencies=[Depends(authenticate_admin)], summary="查询 API Key 列表", tags=["API Key"])
 async def get_keys(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -58,7 +58,7 @@ async def get_keys(
     }
 
 
-@router.post("/admin/keys", dependencies=[Depends(authenticate_admin)])
+@router.post("/admin/keys", dependencies=[Depends(authenticate_admin)], summary="新增 API Key", tags=["API Key"])
 async def create_key(data: ApiKeyCreate) -> dict:
     """
     创建 API Key
@@ -70,7 +70,7 @@ async def create_key(data: ApiKeyCreate) -> dict:
     return out
 
 
-@router.put("/admin/keys/{key_id}", dependencies=[Depends(authenticate_admin)])
+@router.put("/admin/keys/{key_id}", dependencies=[Depends(authenticate_admin)], summary="更新 API Key 配置", tags=["API Key"])
 async def update_key(key_id: int, data: ApiKeyUpdate) -> dict:
     """更新 API Key 配置"""
     key_row = await update_api_key(key_id, data)
@@ -79,7 +79,7 @@ async def update_key(key_id: int, data: ApiKeyUpdate) -> dict:
     return _key_to_out(key_row).model_dump()
 
 
-@router.delete("/admin/keys/{key_id}", dependencies=[Depends(authenticate_admin)])
+@router.delete("/admin/keys/{key_id}", dependencies=[Depends(authenticate_admin)], summary="删除 API Key", tags=["API Key"])
 async def delete_key(key_id: int) -> dict:
     """删除 API Key"""
     ok = await delete_api_key(key_id)
@@ -88,7 +88,7 @@ async def delete_key(key_id: int) -> dict:
     return {"message": "已删除", "id": key_id}
 
 
-@router.get("/admin/keys/{key_id}", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/keys/{key_id}", dependencies=[Depends(authenticate_admin)], summary="查询 API Key 详情", tags=["API Key"])
 async def get_key_detail(key_id: int) -> dict:
     """获取单个 Key 详情"""
     key_row = await get_api_key_by_id(key_id)

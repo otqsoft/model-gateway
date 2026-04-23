@@ -12,7 +12,7 @@ from crud.agents import list_agents
 router = APIRouter()
 
 
-@router.get("/v1/models")
+@router.get("/v1/models", summary="查询Key可用模型列表", tags=["会话"])
 async def list_available_models(
     key_row: ApiKeyRow = Depends(authenticate_request),
 ) -> ModelListResponse:
@@ -40,7 +40,7 @@ async def list_available_models(
     return ModelListResponse(data=data)
 
 
-@router.get("/v1/models/all")
+@router.get("/v1/models/all", summary="查询全部模型列表", tags=["会话"])
 async def list_all_models() -> ModelListResponse:
     """
     返回网关支持的全部模型 + 智能体列表（无需鉴权，用于接入指引）

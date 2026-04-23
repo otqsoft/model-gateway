@@ -32,7 +32,7 @@ logger = logging.getLogger("gateway.chat")
 router = APIRouter()
 
 
-@router.post("/v1/chat/completions")
+@router.post("/v1/chat/completions", summary="OpenAI 兼容 /v1/chat/completions 接口", tags=["会话"])
 async def chat_completions(
     request: Request,
     body: ChatCompletionRequest,

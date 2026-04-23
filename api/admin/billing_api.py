@@ -10,7 +10,7 @@ from crud.billing import get_billing_summary, get_today_total_cost
 router = APIRouter()
 
 
-@router.get("/admin/billing", dependencies=[Depends(authenticate_admin)])
+@router.get("/admin/billing", dependencies=[Depends(authenticate_admin)], summary="查询计费汇总", tags=["仪表盘"])
 async def billing_summary(
     key_id: Optional[str] = Query(None, description="按 Key 过滤"),
     model_alias: Optional[str] = Query(None, description="按模型过滤"),

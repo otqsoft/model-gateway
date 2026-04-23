@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
 
 # ── 创建 FastAPI 应用 ─────────────────────────────────────────
 app = FastAPI(
-    title="AI Model Gateway",
+    title="模型网关",
     description="多平台大模型统一网关，完全兼容 OpenAI v1 接口",
     version="1.0.0",
     lifespan=lifespan,
@@ -96,19 +96,18 @@ app.include_router(agents_router)
 
 
 # ── 健康检查 ──────────────────────────────────────────────────
-@app.get("/health")
+@app.get("/health", summary="健康检查", tags=["系统"])
 async def health():
     return {"status": "ok", "service": "AI Model Gateway"}
 
 
-@app.get("/")
+@app.get("/", summary="根路由重定向到管理界面", tags=["系统"])
 async def root():
     """根路由重定向到管理界面"""
     return RedirectResponse(url="/ui/")
 
-
-@app.get("/ui/")
-@app.get("/ui")
+@app.get("/ui/", summary="管理界面前端入口", tags=["系统"])
+@app.get("/ui", summary="管理后台前端入口", tags=["系统"])
 async def admin_ui():
     """管理后台前端入口"""
     static_file = os.path.join(os.path.dirname(__file__), "static", "index.html")

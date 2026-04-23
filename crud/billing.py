@@ -74,21 +74,41 @@ async def get_billing_summary(
     if group_by not in valid_groups:
         group_by = "key_id"
 
-    sql = f"""
-    SELECT
-        {group_by},
-        SUM(prompt_tokens)     as total_input_tokens,
-        SUM(completion_tokens) as total_output_tokens,
-        SUM(total_tokens)      as total_tokens,
-        SUM(input_cost)        as input_cost,
-        SUM(output_cost)       as output_cost,
-        SUM(total_cost)        as total_cost,
-        COUNT(*)               as request_count
-    FROM usage_billing
-    {where_clause}
-    GROUP BY {group_by}
-    ORDER BY total_cost DESC
-    """
+    # 当按 key_id 分组时，join api_keys 获取 key 名称
+    if group_by == "key_id":
+        sql = f"""
+        SELECT
+            b.key_id,
+            k.name as key_name,
+            SUM(b.prompt_tokens)     as total_input_tokens,
+            SUM(b.completion_tokens) as total_output_tokens,
+            SUM(b.total_tokens)      as total_tokens,
+            SUM(b.input_cost)        as input_cost,
+            SUM(b.output_cost)       as output_cost,
+            SUM(b.total_cost)         as total_cost,
+            COUNT(*)                 as total_requests
+        FROM usage_billing b
+        LEFT JOIN api_keys k ON b.key_id = k.key_id
+        {where_clause}
+        GROUP BY b.key_id, k.name
+        ORDER BY total_cost DESC
+        """
+    else:
+        sql = f"""
+        SELECT
+            {group_by},
+            SUM(prompt_tokens)     as total_input_tokens,
+            SUM(completion_tokens) as total_output_tokens,
+            SUM(total_tokens)      as total_tokens,
+            SUM(input_cost)        as input_cost,
+            SUM(output_cost)       as output_cost,
+            SUM(total_cost)        as total_cost,
+            COUNT(*)               as total_requests
+        FROM usage_billing
+        {where_clause}
+        GROUP BY {group_by}
+        ORDER BY total_cost DESC
+        """
     async with DBHelper() as db:
         return await db.fetchall(sql, args)
 

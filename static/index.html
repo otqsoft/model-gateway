@@ -924,6 +924,7 @@ input:checked + .slider:before{
         <table>
           <thead><tr>
             <th id="bill-group-col">分组</th>
+            <th id="bill-name-col" style="display:none">Key名称</th>
             <th>总请求</th><th>输入Token</th><th>输出Token</th>
             <th>总Token</th><th>输入费用(元)</th><th>输出费用(元)</th><th>总费用(元)</th>
           </tr></thead>
@@ -2241,6 +2242,9 @@ async function loadBilling(){
   const group=document.getElementById('billing-group').value||'key_id';
   document.getElementById('bill-group-col').textContent=
     {key_id:'Key ID',model_alias:'模型',provider_name:'供应商'}[group]||'分组';
+  // 按 Key 查询时显示 Key 名称列
+  const showNameCol=group==='key_id';
+  document.getElementById('bill-name-col').style.display=showNameCol?'':'none';
   try{
     const d=await api('GET','/admin/billing?group_by='+group);
     document.getElementById('bill-today').textContent='¥'+d.today_cost.toFixed(4);
@@ -2252,6 +2256,7 @@ async function loadBilling(){
     tbody.innerHTML=d.items.map(r=>`
       <tr>
         <td><code style="color:var(--accent-teal)">${group==='key_id'?maskKey(r.key_id):(r[group]||'—')}</code></td>
+        ${showNameCol?`<td style="font-size:12px;color:var(--text-secondary)">${r.key_name||'—'}</td>`:''}
         <td>${fmtNum(r.total_requests||0)}</td>
         <td>${fmtNum(r.total_input_tokens||0)}</td>
         <td>${fmtNum(r.total_output_tokens||0)}</td>
@@ -2259,7 +2264,7 @@ async function loadBilling(){
         <td style="color:var(--accent-green)">¥${(r.input_cost||0).toFixed(4)}</td>
         <td style="color:var(--accent-orange)">¥${(r.output_cost||0).toFixed(4)}</td>
         <td style="color:var(--accent-red);font-weight:600">¥${(r.total_cost||0).toFixed(4)}</td>
-      </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+      </tr>`).join('')||`<tr><td colspan="${showNameCol?9:8}" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>`;
   }catch(e){toast('加载计费失败: '+e.message,'err')}
 }
 

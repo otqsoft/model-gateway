@@ -25,12 +25,12 @@ async def overview() -> dict:
     return {
         "total_requests":    total,
         "success_requests":  success,
-        "error_requests":    stats.get("error_requests") or 0,
-        "timeout_requests":  stats.get("timeout_requests") or 0,
+        "error_requests":    int(stats.get("error_requests") or 0),
+        "timeout_requests":  int(stats.get("timeout_requests") or 0),
         "success_rate":      success_rate,
-        "total_tokens":      stats.get("total_tokens") or 0,
+        "total_tokens":      int(stats.get("total_tokens") or 0),
         "avg_duration_ms":   round(float(stats.get("avg_duration_ms") or 0), 2),
-        "requests_today":    stats.get("requests_today") or 0,
-        "tokens_today":      stats.get("tokens_today") or 0,
+        "requests_today":    int(stats.get("requests_today") or 0),
+        "tokens_today":      int(stats.get("tokens_today") or 0),
         "cost_today":        today_cost,
     }

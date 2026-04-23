@@ -31,13 +31,18 @@ async def billing_summary(
     )
     today_cost = await get_today_total_cost()
 
-    # 数值类型统一转 float
+    # 数值类型统一转 float / int
     items = []
     for r in rows:
         item = dict(r)
+        # Decimal → float（费用字段）
         for k in ("total_cost", "input_cost", "output_cost"):
             if k in item and item[k] is not None:
                 item[k] = float(item[k])
+        # Decimal → int（token 字段）
+        for k in ("total_input_tokens", "total_output_tokens", "total_tokens", "request_count"):
+            if k in item and item[k] is not None:
+                item[k] = int(item[k])
         items.append(item)
 
     return {

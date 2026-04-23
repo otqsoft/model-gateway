@@ -77,9 +77,11 @@ async def get_billing_summary(
     sql = f"""
     SELECT
         {group_by},
-        SUM(prompt_tokens)     as total_prompt_tokens,
-        SUM(completion_tokens) as total_completion_tokens,
+        SUM(prompt_tokens)     as total_input_tokens,
+        SUM(completion_tokens) as total_output_tokens,
         SUM(total_tokens)      as total_tokens,
+        SUM(input_cost)        as input_cost,
+        SUM(output_cost)       as output_cost,
         SUM(total_cost)        as total_cost,
         COUNT(*)               as request_count
     FROM usage_billing

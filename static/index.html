@@ -833,7 +833,7 @@ input:checked + .slider:before{
       <div class="tbl-wrap">
         <table>
           <thead><tr>
-            <th>ID</th><th>名称</th><th>Key 前缀</th><th>可用模型</th>
+            <th>ID</th><th>名称</th><th>Key ID</th><th>可用模型</th>
             <th>调用次数</th><th>总 Token</th><th>总费用</th><th>状态</th><th>操作</th>
           </tr></thead>
           <tbody id="keys-tbody">
@@ -1355,7 +1355,7 @@ async function loadDashboard(){
       const pct=total>0?Math.round((item.total_tokens||0)/total*100):0;
       html+=`<div style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span>${item.provider_name||item.key_id||'—'}</span>
+          <span>${item.provider_name||maskKey(item.key_id)||'—'}</span>
           <span style="color:var(--text-muted);font-size:12px">${fmtToken(item.total_tokens||0)} / ¥${(item.total_cost||0).toFixed(4)}</span>
         </div>
         <div class="progress"><div class="progress-bar" style="width:${pct}%;background:var(--accent-blue)"></div></div>
@@ -1509,23 +1509,24 @@ function renderAgentStats(data){
 
 function renderPie(canvasId,legendId,items,labelKey,valKey,colors){
   const el=document.getElementById(canvasId);
-  const labels=items.map(i=>i[labelKey]||'—').slice(0,6);
+  const rawLabels=items.map(i=>i[labelKey]||'—').slice(0,6);
   const vals=items.map(i=>i[valKey]||0).slice(0,6);
   const total=vals.reduce((a,b)=>a+b,0);
+  const displayLabels=rawLabels.map(l=>labelKey==='key_id'?maskKey(l):l);
   // destroy old
   const existing=Chart.getChart(canvasId);
   if(existing) existing.destroy();
   new Chart(el,{
     type:'doughnut',
-    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:'#161b22',borderWidth:2,hoverOffset:6}]},
+    data:{labels:rawLabels,datasets:[{data:vals,backgroundColor:colors,borderColor:'#161b22',borderWidth:2,hoverOffset:6}]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtToken(ctx.raw)} (${total>0?(ctx.raw/total*100).toFixed(1):0}%)`}}}
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${displayLabels[ctx.dataIndex]}: ${fmtToken(ctx.raw)} (${total>0?(ctx.raw/total*100).toFixed(1):0}%)`}}}
     }
   });
   // legend
   const ld=document.getElementById(legendId);
-  ld.innerHTML=labels.map((l,i)=>`
+  ld.innerHTML=displayLabels.map((l,i)=>`
     <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:12px">
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[i]};margin-right:6px"></span>${l}</span>
       <span style="color:var(--text-secondary)">${total>0?(vals[i]/total*100).toFixed(1):0}%</span>
@@ -1928,6 +1929,13 @@ async function deleteAgent(id, name){
 
 // ─── API Keys ──────────────────────────────────────────────
 
+// Key 掩码：前4位 + **** + 后4位
+function maskKey(k){
+  if(k==null)return '—';
+  const s=String(k);
+  if(s.length<=8)return s;
+  return s.slice(0,4)+'****'+s.slice(-4);
+}
 let keysTotal=0;
 async function loadKeys(pg=1){
   keysCurrentPage=pg;
@@ -1939,7 +1947,7 @@ async function loadKeys(pg=1){
       <tr>
         <td>${k.id}</td>
         <td>${k.name||'—'}</td>
-        <td><span style="font-family:monospace;color:var(--accent-teal)">${k.key_prefix}****</span></td>
+        <td><span style="font-family:monospace;color:var(--accent-teal)">${maskKey(k.key_id)}</span></td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">
           ${(k.allowed_models||[]).slice(0,3).map(m=>`<span class="chip" style="margin:1px">${m}</span>`).join('')}
           ${(k.allowed_models||[]).length>3?`<span style="color:var(--text-muted);font-size:11px">+${k.allowed_models.length-3}</span>`:''}
@@ -2218,6 +2226,7 @@ async function showLogDetail(rid){
         <span style="font-size:13px;word-break:break-all">${
           k==='status'?`<span class="badge ${statusBadge(v)}">${v}</span>`:
           k==='is_stream'?(v?'<span style="color:var(--accent-green)">是</span>':'否'):
+          (k==='key_id'||k==='api_key_id')?`<span style="font-family:monospace;color:var(--accent-teal)">${maskKey(v)}</span>`:
           v
         }</span>
       </div>`;
@@ -2242,7 +2251,7 @@ async function loadBilling(){
     const tbody=document.getElementById('billing-tbody');
     tbody.innerHTML=d.items.map(r=>`
       <tr>
-        <td><code style="color:var(--accent-teal)">${r[group]||'—'}</code></td>
+        <td><code style="color:var(--accent-teal)">${group==='key_id'?maskKey(r.key_id):(r[group]||'—')}</code></td>
         <td>${fmtNum(r.total_requests||0)}</td>
         <td>${fmtNum(r.total_input_tokens||0)}</td>
         <td>${fmtNum(r.total_output_tokens||0)}</td>

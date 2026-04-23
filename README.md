@@ -177,4 +177,9 @@ curl http://localhost:8000/v1/chat/completions \
         <td><img src="static/images/7.png"/></td>
         <td><img src="static/images/8.png"/></td>
     </tr>
+    <tr>
+        <td><img src="static/images/9.png"/></td>
+        <td><img src="static/images/10.png"/></td>
+    </tr>
 </table>
+

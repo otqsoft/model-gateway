@@ -1,7 +1,7 @@
 [project]
 name = "model-gateway"
 version = "0.1.0"
-description = "Add your description here"
+description = "多平台大模型统一网关，OpenAI 兼容接口，支持 DeepSeek/MiniMax/GLM/Coze/Dify 等平台"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [

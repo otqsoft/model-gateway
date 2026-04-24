@@ -1,9 +1,9 @@
 """
 api/admin/overview.py — 总览统计接口
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from middleware.auth import authenticate_admin
-from crud.request_logs import get_overview_stats
+from crud.request_logs import get_overview_stats, get_hourly_stats
 from crud.billing import get_today_total_cost
 from models.admin_models import OverviewStats
 
@@ -34,3 +34,12 @@ async def overview() -> dict:
         "tokens_today":      int(stats.get("tokens_today") or 0),
         "cost_today":        today_cost,
     }
+
+
+@router.get("/admin/billing/hourly", dependencies=[Depends(authenticate_admin)], summary="近N小时趋势", tags=["仪表盘"])
+async def hourly_trend(hours: int = Query(24, ge=1, le=168)) -> dict:
+    """
+    近N小时按小时聚合的请求趋势数据
+    """
+    rows = await get_hourly_stats(hours)
+    return {"items": rows, "count": len(rows)}

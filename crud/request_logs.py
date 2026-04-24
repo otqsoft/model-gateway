@@ -219,3 +219,22 @@ async def get_upstream_status_distribution() -> list[dict]:
             GROUP BY upstream_status
             ORDER BY count DESC
         """)
+
+
+async def get_hourly_stats(hours: int = 24) -> list[dict]:
+    """近N小时按小时聚合的请求统计"""
+    async with DBHelper() as db:
+        rows = await db.fetchall(f"""
+            SELECT
+                DATE_FORMAT(started_at, '%%Y-%%m-%%d %%H:00') as hour_label,
+                COUNT(*) as total_requests,
+                SUM(status = 'success') as success_requests,
+                SUM(status = 'error') as error_requests,
+                SUM(status = 'timeout') as timeout_requests,
+                SUM(total_tokens) as total_tokens
+            FROM request_logs
+            WHERE started_at >= DATE_SUB(NOW(), INTERVAL %s HOUR)
+            GROUP BY hour_label
+            ORDER BY hour_label ASC
+        """, (hours,))
+        return rows if rows else []

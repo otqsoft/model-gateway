@@ -104,6 +104,37 @@ uv run python main.py
 - API 文档：`http://localhost:8086/docs`
 - 健康检查：`http://localhost:8086/health`
 
+### 5. 编译
+
+**windows环境**
+
+```bash
+# 默认独立目录模式
+build_windows.bat
+
+# 单文件 exe
+build_windows.bat onefile
+
+# 清理后重新编译
+build_windows.bat clean
+
+# 清理 + 单文件
+build_windows.bat onefile clean
+```
+
+**linux环境**
+
+```bash
+# 默认独立目录模式
+bash build_linux.sh
+
+# 单文件二进制
+bash build_linux.sh --onefile
+
+# 先清理再编译
+bash build_linux.sh --clean --onefile
+```
+
 
 
 ## API 调用

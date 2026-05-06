@@ -671,9 +671,9 @@ input:checked + .slider:before{
     <div class="page active" id="page-dashboard">
       <!-- stat cards -->
       <div class="grid g6" style="margin-bottom:16px" id="dash-stats">
-        <div class="stat-card"><div class="stat-label">总请求数</div><div class="stat-val c-blue" id="ds-total">—</div></div>
-        <div class="stat-card"><div class="stat-label">总 Token 数</div><div class="stat-val c-teal" id="ds-tokens">—</div></div>
-        <div class="stat-card"><div class="stat-label">今日费用</div><div class="stat-val c-orange" id="ds-cost">—</div></div>
+        <div class="stat-card"><div class="stat-label">今日费用 / 总费用</div><div class="stat-val c-orange" id="ds-cost">—</div></div>
+        <div class="stat-card"><div class="stat-label">总 Token 数</div><div class="stat-val c-teal" id="ds-tokens">—</div></div>        
+        <div class="stat-card"><div class="stat-label">总请求数(次)</div><div class="stat-val c-blue" id="ds-total">—</div></div>        
         <div class="stat-card"><div class="stat-label">成功率</div><div class="stat-val c-green" id="ds-rate">—</div></div>
         <div class="stat-card"><div class="stat-label">错误请求</div><div class="stat-val c-red" id="ds-err">—</div></div>
         <div class="stat-card"><div class="stat-label">平均耗时</div><div class="stat-val c-purple" id="ds-avg">—</div></div>
@@ -737,21 +737,6 @@ input:checked + .slider:before{
         </div>
       </div>
 
-      <div class="grid g2" style="margin-bottom:16px">
-        <div class="card">
-          <div class="card-title"><span>❌ 错误热点</span></div>
-          <div id="error-hotspot">
-            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title"><span>⏱ Timeout 热点</span></div>
-          <div id="timeout-hotspot">
-            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
-          </div>
-        </div>
-      </div>
-
       <div class="grid g2">
         <div class="card">
           <div class="card-title"><span>📊 请求状态分布</span></div>
@@ -762,6 +747,21 @@ input:checked + .slider:before{
         <div class="card">
           <div class="card-title"><span>📡 上游状态码分布</span></div>
           <div id="upstream-dist">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-title"><span>❌ 错误热点</span></div>
+          <div id="error-hotspot">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>⏱ Timeout 热点</span></div>
+          <div id="timeout-hotspot">
             <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
           </div>
         </div>
@@ -813,10 +813,10 @@ input:checked + .slider:before{
         <button class="btn btn-primary" onclick="openAgentModal()">+ 新增智能体</button>
       </div>
       <div class="grid g4" style="margin-bottom:16px" id="agent-stats">
-        <div class="stat-card"><div class="stat-label">智能体总数</div><div class="stat-val c-blue" id="ag-total">—</div></div>
-        <div class="stat-card"><div class="stat-label">累计调用</div><div class="stat-val c-green" id="ag-calls">—</div></div>
-        <div class="stat-card"><div class="stat-label">累计Token</div><div class="stat-val c-teal" id="ag-tokens">—</div></div>
         <div class="stat-card"><div class="stat-label">累计费用</div><div class="stat-val c-orange" id="ag-cost">—</div></div>
+        <div class="stat-card"><div class="stat-label">累计Token</div><div class="stat-val c-teal" id="ag-tokens">—</div></div>
+        <div class="stat-card"><div class="stat-label">累计调用(次)</div><div class="stat-val c-green" id="ag-calls">—</div></div>
+        <div class="stat-card"><div class="stat-label">智能体总数</div><div class="stat-val c-blue" id="ag-total">—</div></div>         
       </div>
       <!-- 按供应商分组展示智能体 -->
       <div id="agents-groups">
@@ -915,10 +915,10 @@ input:checked + .slider:before{
           </select>
         </div>
       </div>
-      <div class="grid g3" style="margin-bottom:16px">
+      <div class="grid g3" style="margin-bottom:16px">      
         <div class="stat-card"><div class="stat-label">今日费用</div><div class="stat-val c-orange" id="bill-today">—</div></div>
-        <div class="stat-card"><div class="stat-label">总消耗 Token</div><div class="stat-val c-teal" id="bill-tokens">—</div></div>
         <div class="stat-card"><div class="stat-label">总费用</div><div class="stat-val c-purple" id="bill-total">—</div></div>
+        <div class="stat-card"><div class="stat-label">总消耗 Token</div><div class="stat-val c-teal" id="bill-tokens">—</div></div>        
       </div>
       <div class="tbl-wrap">
         <table>
@@ -1328,11 +1328,18 @@ async function loadDashboard(){
     const d=await api('GET','/admin/overview');
     document.getElementById('ds-total').textContent=fmtNum(d.total_requests);
     document.getElementById('ds-tokens').textContent=fmtToken(d.total_tokens);
-    document.getElementById('ds-cost').textContent='¥'+d.cost_today.toFixed(4);
     document.getElementById('ds-rate').textContent=d.success_rate+'%';
     document.getElementById('ds-err').textContent=fmtNum(d.error_requests+d.timeout_requests);
     document.getElementById('ds-avg').textContent=d.avg_duration_ms+'ms';
   }catch(e){toast('概览加载失败: '+e.message,'err')}
+
+  // 费用（今日+总费用）
+  try{
+    const bd=await api('GET','/admin/billing?group_by=key_id&page=1&page_size=1');
+    const todayCost=(bd.today_cost||0).toFixed(2);
+    const totalCost=bd.items.reduce((s,i)=>s+(i.total_cost||0),0).toFixed(2);
+    document.getElementById('ds-cost').textContent=`¥${todayCost} / ${totalCost}`;
+  }catch(e){}
 
   // recent logs
   try{

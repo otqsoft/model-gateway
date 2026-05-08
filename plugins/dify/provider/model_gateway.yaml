@@ -1,0 +1,55 @@
+background: "#0f172a"
+configurate_methods:
+  - predefined-model
+description:
+  en_US: Connect Dify to model-gateway (OpenAI-compatible /v1/chat/completions).
+  zh_Hans: 将 Dify 接入 model-gateway（OpenAI 兼容 /v1/chat/completions）。
+extra:
+  python:
+    # 与 dify-official-plugins 一致：LLM 实现必须位于 models/llm/llm.py，否则 daemon 可能错误访问 models/llm 路径
+    model_sources:
+      - models/llm/llm.py
+    provider_source: provider/model_gateway.py
+help:
+  title:
+    en_US: model-gateway documentation
+    zh_Hans: model-gateway 说明
+  url:
+    en_US: https://github.com/model-gateway/model-gateway
+    zh_Hans: https://github.com/model-gateway/model-gateway
+icon_large:
+  en_US: icon_l_en.svg
+icon_small:
+  en_US: icon_s_en.svg
+label:
+  en_US: Model Gateway
+  zh_Hans: 模型网关
+models:
+  llm:
+    position: models/llm/_position.yaml
+    predefined:
+      - "models/llm/*.yaml"
+provider: model_gateway
+provider_credential_schema:
+  credential_form_schemas:
+    - variable: gateway_url
+      label:
+        en_US: Gateway base URL
+        zh_Hans: Gateway 根地址
+      type: text-input
+      required: true
+      default: "http://host.docker.internal:8000"
+      placeholder:
+        en_US: "http://host.docker.internal:8000"
+        zh_Hans: "例如 Docker 内访问宿主机: http://host.docker.internal:8000"
+    - variable: api_key
+      label:
+        en_US: API Key
+        zh_Hans: API Key
+      type: secret-input
+      required: true
+      placeholder:
+        en_US: sk-...
+        zh_Hans: 在 model-gateway 管理端创建的 sk-...
+supported_model_types:
+  - llm

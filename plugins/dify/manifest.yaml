@@ -1,32 +1,40 @@
-plugin_unique_identifier: model-gateway-team/model-gateway:1.0.0
+# Dify 插件 Manifest（新版）：须为 type: plugin，并与 main.py / pyproject.toml 配套。
+# 旧版 type: model 单文件 manifest 在新版 Dify 中会导致安装/解析失败（PluginDecodeResponse 等）。
 version: 1.0.0
-type: model-provider
-
-name: model-gateway
-label:
-  en: Model Gateway
-  zh_Hans: 模型网关
-
+type: plugin
+author: model_gateway
+name: model_gateway
+created_at: "2026-05-08T00:00:00Z"
 description:
-  en: Unified LLM gateway supporting DeepSeek, GLM, MiniMax, and more
-  zh_Hans: 统一大模型网关，支持 DeepSeek、GLM、MiniMax 等多种模型
-
-author: model-gateway-team
-homepage: https://github.com/model-gateway/model-gateway
-
-provider:
-  name: model-gateway
-  label:
-    en: Model Gateway
-    zh_Hans: 模型网关
-  credentials_schema: provider.credentials_schema
-  model_schemas:
-    - model_schemas.deepseek_chat
-    - model_schemas.deepseek_coder
-    - model_schemas.glm4
-    - model_schemas.glm4_flash
-    - model_schemas.glm4_plus
-    - model_schemas.glm3_turbo
-    - model_schemas.minimax_text
-    - model_schemas.xiaomi_ai
-  provider_class: provider.ModelGatewayProvider
+  en_US: Unified LLM gateway — use models exposed by model-gateway (OpenAI-compatible API).
+  zh_Hans: 统一大模型网关 — 通过 model-gateway 提供的 OpenAI 兼容接口使用已配置的模型。
+label:
+  en_US: Model Gateway
+  zh_Hans: 模型网关
+# 与官方模型插件一致：图标放在 _assets/，此处只写文件名（daemon 会从 _assets 解析）
+icon: icon_s_en.svg
+plugins:
+  models:
+    - provider/model_gateway.yaml
+meta:
+  version: 0.0.1
+  arch:
+    - amd64
+    - arm64
+  runner:
+    language: python
+    version: "3.12"
+    entrypoint: main
+resource:
+  memory: 268435456
+  permission:
+    tool:
+      enabled: true
+    model:
+      enabled: true
+      llm: true
+      moderation: false
+      rerank: false
+      speech2text: false
+      text_embedding: false
+      tts: false

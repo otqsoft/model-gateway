@@ -1,0 +1,17 @@
+model: xiaomi-ai
+label:
+  en_US: Xiaomi AI
+  zh_Hans: 小米 AI
+model_type: llm
+features:
+  - stream
+model_properties:
+  mode: chat
+  context_size: 131072
+parameter_rules:
+  - name: temperature
+    use_template: temperature
+  - name: max_tokens
+    use_template: max_tokens
+  - name: top_p
+    use_template: top_p

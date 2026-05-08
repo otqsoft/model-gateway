@@ -1,0 +1,11 @@
+[project]
+name = "model-gateway-dify-plugin"
+version = "1.0.0"
+description = "Dify model provider plugin for model-gateway (OpenAI-compatible)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dify_plugin>=0.5.0",
+    "httpx>=0.25.0",
+    "yarl>=1.9.0",
+]

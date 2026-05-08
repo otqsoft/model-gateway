@@ -1,0 +1,32 @@
+plugin_unique_identifier: model-gateway-team/model-gateway:1.0.0
+version: 1.0.0
+type: model-provider
+
+name: model-gateway
+label:
+  en: Model Gateway
+  zh_Hans: 模型网关
+
+description:
+  en: Unified LLM gateway supporting DeepSeek, GLM, MiniMax, and more
+  zh_Hans: 统一大模型网关，支持 DeepSeek、GLM、MiniMax 等多种模型
+
+author: model-gateway-team
+homepage: https://github.com/model-gateway/model-gateway
+
+provider:
+  name: model-gateway
+  label:
+    en: Model Gateway
+    zh_Hans: 模型网关
+  credentials_schema: provider.credentials_schema
+  model_schemas:
+    - model_schemas.deepseek_chat
+    - model_schemas.deepseek_coder
+    - model_schemas.glm4
+    - model_schemas.glm4_flash
+    - model_schemas.glm4_plus
+    - model_schemas.glm3_turbo
+    - model_schemas.minimax_text
+    - model_schemas.xiaomi_ai
+  provider_class: provider.ModelGatewayProvider

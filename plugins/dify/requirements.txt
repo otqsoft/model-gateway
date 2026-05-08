@@ -1,0 +1,2 @@
+# Model Gateway Dify Plugin Dependencies
+httpx>=0.25.0

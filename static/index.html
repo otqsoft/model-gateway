@@ -1349,7 +1349,7 @@ async function loadDashboard(){
         <span class="badge ${statusBadge(r.status)}">${r.status}</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${r.model_alias||'—'} / ${r.provider_name||'—'}</span>
         <span style="color:var(--text-muted);font-size:11px">${r.duration_ms||0}ms</span>
-        <span style="color:var(--text-muted);font-size:11px">${fmtTime(r.start_time)}</span>
+        <span style="color:var(--text-muted);font-size:11px">${fmtTime(r.started_at)}</span>
       </div>`).join('');
     document.getElementById('recent-logs').innerHTML=html||'<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';
   }catch(e){}
@@ -1379,14 +1379,18 @@ async function loadDashboard(){
 async function loadTrendChart(){
   // 拉取近24小时按小时的日志统计
   try{
-    // 生成近24个小时的标签（全部初始化为0）
+    // 生成近24个小时的标签（本地时间，idx 0 = 23小时前，idx 23 = 当前小时）
     const labels=[];
     const reqs=new Array(24).fill(0);
     const errs=new Array(24).fill(0);
     const toks=new Array(24).fill(0);
     const now=new Date();
-    for(let i=23;i>=0;i--){
-      const h=new Date(now-i*3600000);
+    // slotTimes[i] 是 idx=i 对应的小时起始本地时间（精确到小时）
+    const slotTimes=[];
+    for(let i=0;i<24;i++){
+      const h=new Date(now-(23-i)*3600000);
+      h.setMinutes(0,0,0);
+      slotTimes.push(h);
       labels.push(h.getHours().toString().padStart(2,'0')+':00');
     }
     // 调用真实的小时聚合接口
@@ -1394,28 +1398,16 @@ async function loadTrendChart(){
     // 将后端数据映射到对应的槽位
     if(d.items&&d.items.length>0){
       d.items.forEach(item=>{
-        // hour_label 格式: "2026-04-24 14:00"
-        const match=item.hour_label.match(/(\d{2}):00$/);
-        if(match){
-          const h=parseInt(match[1]);
-          // 找到当前标签列表中对应的索引（从后往前数，因为是近24小时）
-          const idx=labels.findIndex(l=>l===`${h.toString().padStart(2,'0')}:00`);
-          // 由于标签是从23小时前到当前，idx 0是最旧的，idx 23是最近的
-          // 但后端返回的hour_label是完整的datetime，需要匹配日期+小时
-          // 重新解析：用完整datetime匹配
-        }
-      });
-      // 用完整 datetime 匹配
-      d.items.forEach(item=>{
-        const dateStr=item.hour_label; // "2026-04-24 14:00"
-        const idx=labels.findIndex((_,i)=>{
-          const labelTime=new Date(now-i*3600000);
-          const labelStr=labelTime.getFullYear()+'-'+
-            String(labelTime.getMonth()+1).padStart(2,'0')+'-'+
-            String(labelTime.getDate()).padStart(2,'0')+' '+
-            labelTime.getHours().toString().padStart(2,'0')+':00';
-          return labelStr===dateStr;
-        });
+        // hour_label 格式: "2026-05-13 11:00"（后端本地时间或UTC）
+        // 用 "YYYY-MM-DD HH:00" 解析为本地时间（替换空格为T，浏览器统一按本地解析）
+        const raw=item.hour_label; // "2026-05-13 11:00"
+        if(!raw) return;
+        const localDt=new Date(raw.replace(' ','T')); // 无时区 → 本地时间
+        if(isNaN(localDt)) return;
+        localDt.setMinutes(0,0,0);
+        const localMs=localDt.getTime();
+        // 找到匹配的 slot
+        const idx=slotTimes.findIndex(st=>st.getTime()===localMs);
         if(idx>=0){
           reqs[idx]=item.total_requests||0;
           errs[idx]=(item.error_requests||0)+(item.timeout_requests||0);
@@ -2255,7 +2247,7 @@ async function loadLogs(pg=1){
         <td>${fmtNum(r.prompt_tokens||0)}</td>
         <td>${fmtNum(r.completion_tokens||0)}</td>
         <td style="color:var(--text-muted);font-size:11px">${r.client_ip||'—'}</td>
-        <td style="font-size:11px;white-space:nowrap">${fmtTime(r.start_time)}</td>
+        <td style="font-size:11px;white-space:nowrap">${fmtTime(r.started_at)}</td>
         <td><button class="btn btn-sm" onclick="showLogDetail('${r.request_id}')">详情</button></td>
       </tr>`).join('')||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
     const totalPages=Math.ceil(logsTotal/20);
@@ -2397,8 +2389,19 @@ function fmtToken(n){
 }
 function fmtTime(t){
   if(!t) return '—';
-  try{return new Date(t).toLocaleString('zh-CN',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace(/\//g,'-');}
-  catch{return t;}
+  try{
+    let s=String(t);
+    // 后端 isoformat() 返回无时区后缀字符串，如：
+    //   "2026-05-13T11:20:00" 或 "2026-05-13T11:20:00.123456"
+    // new Date("YYYY-MM-DDTHH:MM:SS") 规范要求按 UTC 解析，会导致时间偏差
+    // 解决：检测到无时区信息时，将 T 替换为空格，浏览器统一按本地时间解析
+    if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)&&!s.endsWith('Z')&&!/[+\-]\d{2}:?\d{2}$/.test(s)){
+      s=s.replace('T',' ');
+    }
+    const d=new Date(s);
+    if(isNaN(d.getTime())) return String(t);
+    return d.toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).replace(/\//g,'-');
+  }catch{return String(t);}
 }
 function statusBadge(s){
   return {success:'badge-green',error:'badge-red',timeout:'badge-orange',pending:'badge-blue',running:'badge-blue'}[s]||'badge-gray';

@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.config import settings
@@ -104,10 +104,10 @@ async def health():
 @app.get("/", summary="根路由重定向到管理界面", tags=["系统"])
 async def root():
     """根路由重定向到管理界面"""
-    return RedirectResponse(url="/ui/")
+    return RedirectResponse(url="/browser/")
 
-@app.get("/ui/", summary="管理界面前端入口", tags=["系统"])
-@app.get("/ui", summary="管理后台前端入口", tags=["系统"])
+@app.get("/manager/", summary="管理界面前端入口", tags=["系统"])
+@app.get("/manager", summary="管理后台前端入口", tags=["系统"])
 async def admin_ui():
     """管理后台前端入口"""
     static_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
@@ -117,6 +117,35 @@ async def admin_ui():
         status_code=404,
         content={"error": "前端文件不存在，请确认 static/index.html 已生成"},
     )
+
+
+@app.get("/browser", summary="只读浏览界面（无需 Admin Token）", tags=["系统"])
+@app.get("/browser/", summary="只读浏览界面入口", tags=["系统"])
+async def browser_ui():
+    """
+    只读浏览模式入口，无需手动输入 Admin Token。
+    - 所有数据均可查看
+    - 禁止新增 / 编辑 / 删除操作
+    - 隐藏系统设置和顶部 Token 输入框
+    """
+    static_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    if not os.path.exists(static_file):
+        return JSONResponse(
+            status_code=404,
+            content={"error": "前端文件不存在，请确认 static/index.html 已生成"},
+        )
+    with open(static_file, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    # 在 <script> 块最开始注入两个变量：
+    #   BROWSER_MODE  = true   → 前端进入只读模式
+    #   BROWSER_TOKEN = <token> → 自动填入合法 Admin Token，无需用户输入
+    inject = (
+        f'<script>window.BROWSER_MODE=true;'
+        f'window.BROWSER_TOKEN={repr(settings.admin_token)};</script>\n'
+    )
+    html = html.replace("</head>", inject + "</head>", 1)
+    return HTMLResponse(content=html)
 
 
 # ── 静态文件服务（放在所有路由之后）───────────────────────────

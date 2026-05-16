@@ -1249,7 +1249,11 @@ input:checked + .slider:before{
 <!-- ═══════════════ JS ═══════════════ -->
 <script>
 // ─── Config & State ────────────────────────────────────────
-let ADMIN_TOKEN = localStorage.getItem('mg_token') || '';
+// 只读浏览模式：由后端在 /browser 路由注入 window.BROWSER_MODE / window.BROWSER_TOKEN
+const _BROWSER_MODE = !!(window.BROWSER_MODE);
+let ADMIN_TOKEN = _BROWSER_MODE
+  ? (window.BROWSER_TOKEN || '')
+  : (localStorage.getItem('mg_token') || '');
 let BASE_URL = localStorage.getItem('mg_base') || '';
 let currentPage = 'dashboard';
 let keysCurrentPage = 1;
@@ -1258,6 +1262,28 @@ let trendChartInst = null;
 let providerPieInst = null;
 let keyPieInst = null;
 let modelPieInst = null;
+
+// ─── BROWSER MODE 初始化 ──────────────────────────────────
+if(_BROWSER_MODE){
+  // 隐藏顶部 Token 输入框
+  document.getElementById('admin-token-wrap').style.display='none';
+  // 隐藏侧边栏「系统设置」按钮
+  document.querySelector('.sidebar-footer').style.display='none';
+  // 顶部显示只读标识
+  const roTag=document.createElement('span');
+  roTag.id='browser-mode-tag';
+  roTag.style.cssText='font-size:11px;color:var(--accent-orange);border:1px solid rgba(251,146,60,.4);padding:2px 8px;border-radius:4px;font-weight:600;letter-spacing:.5px;';
+  roTag.textContent='浏览模式';
+  document.querySelector('.topbar-right').prepend(roTag);
+  // 隐藏各页面「新增」按钮（静态 HTML 中的按钮）
+  document.addEventListener('DOMContentLoaded',()=>{});
+  [
+    ()=>document.querySelector('#page-providers .section-hd .btn-primary'),
+    ()=>document.querySelector('#page-models .section-hd .btn-primary'),
+    ()=>document.querySelector('#page-agents .section-hd .btn-primary'),
+    ()=>document.querySelector('#page-keys .section-hd .btn-primary'),
+  ].forEach(fn=>{const el=fn();if(el)el.style.display='none';});
+}
 
 // Init
 document.getElementById('token-input').value = ADMIN_TOKEN;
@@ -1626,8 +1652,8 @@ async function loadProviders(){
         <td>${p.timeout_seconds||120}</td>
         <td><span class="badge ${p.is_enabled?'badge-green':'badge-red'}">${p.is_enabled?'启用':'禁用'}</span></td>
         <td style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick='editProvider(${JSON.stringify(p)})'>编辑</button>
-          <button class="btn btn-sm btn-danger" onclick='deleteProvider(${p.id},"${p.display_name||p.name}")'>删除</button>
+          ${_BROWSER_MODE?'':`<button class="btn btn-sm" onclick='editProvider(${JSON.stringify(p)})'>编辑</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteProvider(${p.id},"${p.display_name||p.name}")'>删除</button>`}
         </td>
       </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
   }catch(e){toast('加载供应商失败: '+e.message,'err')}
@@ -1647,6 +1673,7 @@ function toggleProviderTypeFields(){
 }
 
 function openProviderModal(pv=null){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许编辑操作','err');return;}
   document.getElementById('modal-provider-title').textContent=pv?'编辑供应商':'新增供应商';
   document.getElementById('pv-id').value=pv?pv.id:'';
   document.getElementById('pv-name').value=pv?pv.name:'';
@@ -1664,6 +1691,7 @@ function openProviderModal(pv=null){
 function editProvider(pv){openProviderModal(pv);}
 
 async function submitProvider(){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许保存操作','err');return;}
   const id=document.getElementById('pv-id').value;
   const pvType=document.getElementById('pv-type').value;
   const body={
@@ -1692,6 +1720,7 @@ async function submitProvider(){
 }
 
 async function deleteProvider(id, name){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许删除操作','err');return;}
   if(!confirm(`确认删除供应商「${name}」？\n\n若该供应商下仍有关联模型或智能体，删除将被拒绝。`)) return;
   try{
     await api('DELETE','/admin/providers/'+id);
@@ -1723,14 +1752,15 @@ async function loadModels(){
           </label>
 </td>
         <td>
-          <button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button>
-          <button class="btn btn-sm btn-danger" onclick='deleteModel(${m.id},"${m.model_alias}")'>删除</button>
+          ${_BROWSER_MODE?'':`<button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteModel(${m.id},"${m.model_alias}")'>删除</button>`}
         </td>
       </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
   }catch(e){toast('加载模型失败: '+e.message,'err')}
 }
 
 async function openModelModal(md=null){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许编辑操作','err');return;}
   document.getElementById('modal-model-title').textContent=md?'编辑模型':'新增模型';
   document.getElementById('md-id').value=md?md.id:'';
   document.getElementById('md-alias').value=md?md.model_alias:'';
@@ -1774,6 +1804,7 @@ async function toggleModel(id,enabled){
 }
 
 async function deleteModel(id, alias){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许删除操作','err');return;}
   if(!confirm(`确认删除模型「${alias}」？`)) return;
   try{
     await api('DELETE',`/admin/models/${id}`);
@@ -1783,6 +1814,7 @@ async function deleteModel(id, alias){
 }
 
 async function submitModel(){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许保存操作','err');return;}
   const id=document.getElementById('md-id').value;
   const body={
     model_alias:document.getElementById('md-alias').value.trim(),
@@ -1845,7 +1877,7 @@ async function loadAgents(){
           <span style="flex:1"></span>
           <span style="font-size:12px;color:var(--text-muted)">总调用: ${fmtNum(items.reduce((s,a)=>s+(a.total_calls||0),0))}</span>
           <span style="font-size:12px;color:var(--text-muted);margin-left:12px">总 Token: ${fmtToken(items.reduce((s,a)=>s+(a.total_tokens||0),0))}</span>
-          <button class="btn btn-sm" style="margin-left:12px" onclick="openAgentModal(null,'${prov}')">+ 添加至此供应商</button>
+          ${_BROWSER_MODE?'':`<button class="btn btn-sm" style="margin-left:12px" onclick="openAgentModal(null,'${prov}')">+ 添加至此供应商</button>`}
         </div>
         <div class="tbl-wrap" style="margin-top:0">
           <table>
@@ -1873,8 +1905,8 @@ async function loadAgents(){
                   </label>
                 </td>
                 <td style="white-space:nowrap">
-                  <button class="btn btn-sm" onclick='editAgent(${JSON.stringify(a).replace(/'/g,"&#39;")})'>编辑</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteAgent(${a.id},'${(a.display_name||a.name).replace(/'/g,"&#39;")}')">删除</button>
+                  ${_BROWSER_MODE?'':`<button class="btn btn-sm" onclick='editAgent(${JSON.stringify(a).replace(/'/g,"&#39;")})'>编辑</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteAgent(${a.id},'${(a.display_name||a.name).replace(/'/g,"&#39;")}')">删除</button>`}
                 </td>
               </tr>`).join('')}
             </tbody>
@@ -1885,6 +1917,7 @@ async function loadAgents(){
 }
 
 async function openAgentModal(ag=null, defaultProvider=''){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许编辑操作','err');return;}
   document.getElementById('modal-agent-title').textContent=ag?'编辑智能体':'新增智能体';
   document.getElementById('ag-id').value=ag?ag.id:'';
   document.getElementById('ag-name').value=ag?ag.name:'';
@@ -1915,6 +1948,7 @@ async function openAgentModal(ag=null, defaultProvider=''){
 function editAgent(ag){openAgentModal(ag);}
 
 async function submitAgent(){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许保存操作','err');return;}
   const id=document.getElementById('ag-id').value;
   const body={
     provider_name:document.getElementById('ag-provider').value,
@@ -1947,6 +1981,7 @@ async function toggleAgent(id,enabled){
 }
 
 async function deleteAgent(id, name){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许删除操作','err');return;}
   if(!confirm(`确认删除智能体「${name}」？`)) return;
   try{
     await api('DELETE','/admin/agents/'+id);
@@ -1986,8 +2021,8 @@ async function loadKeys(pg=1){
         <td style="color:var(--accent-orange)">¥${(k.total_cost||0).toFixed(4)}</td>
         <td><span class="badge ${k.is_enabled?'badge-green':'badge-red'}">${k.is_enabled?'启用':'禁用'}</span></td>
         <td style="white-space:nowrap">
-          <button class="btn btn-sm" onclick='editKey(${JSON.stringify(k)})'>编辑</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteKey(${k.id},'${k.name||''}')">删除</button>
+          ${_BROWSER_MODE?'':`<button class="btn btn-sm" onclick='editKey(${JSON.stringify(k)})'>编辑</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteKey(${k.id},'${k.name||''}')">删除</button>`}
         </td>
       </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
     const totalPages=Math.ceil(keysTotal/15);
@@ -1999,6 +2034,7 @@ async function loadKeys(pg=1){
 function keysPage(d){loadKeys(keysCurrentPage+d);}
 
 async function openKeyModal(k=null){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许编辑操作','err');return;}
   document.getElementById('modal-key-title').textContent=k?'编辑密钥':'创建 API 密钥';
   document.getElementById('key-id').value=k?k.id:'';
   document.getElementById('key-name').value=k?k.name:'';
@@ -2150,6 +2186,7 @@ function getSelectedModels(){
 }
 
 async function submitKey(){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许保存操作','err');return;}
   const id=document.getElementById('key-id').value;
   const models=getSelectedModels();
   const body={
@@ -2181,6 +2218,7 @@ async function submitKey(){
 }
 
 async function deleteKey(id,name){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许删除操作','err');return;}
   if(!confirm(`确认删除密钥「${name}」？此操作不可恢复！`)) return;
   try{
     await api('DELETE','/admin/keys/'+id);
@@ -2320,11 +2358,13 @@ async function loadBilling(){
 
 // ─── Settings ─────────────────────────────────────────────
 function showSettings(){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许修改系统设置','err');return;}
   document.getElementById('settings-token').value=ADMIN_TOKEN;
   document.getElementById('settings-base').value=BASE_URL;
   openModal('modal-settings');
 }
 function saveSettings(){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许修改系统设置','err');return;}
   ADMIN_TOKEN=document.getElementById('settings-token').value.trim();
   BASE_URL=document.getElementById('settings-base').value.trim();
   localStorage.setItem('mg_token',ADMIN_TOKEN);

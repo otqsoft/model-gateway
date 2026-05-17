@@ -615,7 +615,7 @@ input:checked + .slider:before{
     </div>
     <div class="nav-item" data-page="providers" onclick="nav(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-      供应商配置
+      模型供应商
     </div>
     <div class="nav-item" data-page="models" onclick="nav(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -1244,6 +1244,36 @@ input:checked + .slider:before{
   </div>
 </div>
 
+<!-- Token Verify Modal -->
+<div class="modal-overlay" id="modal-token-verify">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔐 管理员验证</div>
+      <button class="modal-close" onclick="closeModal('modal-token-verify')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ADMIN_TOKEN</label>
+        <input class="form-input" id="verify-token-input" type="password" placeholder="输入管理员 Token"
+               style="font-family:'JetBrains Mono',monospace"
+               onkeydown="if(event.key==='Enter')submitTokenVerify()">
+        <div class="form-hint">请输入正确的 ADMIN_TOKEN 以进入管理页面</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-token-verify')">取消</button>
+      <button class="btn btn-primary" onclick="submitTokenVerify()">验证并进入</button>
+    </div>
+  </div>
+</div>
+
+<!-- BROWSER MODE: Admin jump button -->
+<div id="browser-admin-btn" class="nav-item" onclick="openTokenVerifyModal()"
+     style="display:none;position:fixed;bottom:16px;left:1px;width:226px;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.5);">
+  <!-- <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> -->
+  进入管理
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
@@ -1284,6 +1314,28 @@ if(_BROWSER_MODE){
     ()=>document.querySelector('#page-agents .section-hd .btn-primary'),
     ()=>document.querySelector('#page-keys .section-hd .btn-primary'),
   ].forEach(fn=>{const el=fn();if(el)el.style.display='none';});
+  // 显示左下角「管理」按钮
+  document.getElementById('browser-admin-btn').style.display='block';
+}
+
+// ─── Token Verify (Browser Mode) ───────────────────────────
+function openTokenVerifyModal(){
+  document.getElementById('verify-token-input').value='';
+  document.getElementById('verify-token-input').focus();
+  document.getElementById('modal-token-verify').classList.add('show');
+}
+
+async function submitTokenVerify(){
+  const token = document.getElementById('verify-token-input').value.trim();
+  if(!token){toast('请输入 ADMIN_TOKEN','err');return;}
+  try{
+    await api('GET','/admin/providers',null,token);
+    // Token 正确，保存并跳转
+    localStorage.setItem('mg_token',token);
+    window.location.href = '/manager';
+  }catch(e){
+    toast('Token 验证失败','err');
+  }
 }
 
 // Init
@@ -1298,10 +1350,10 @@ setInterval(()=>{
 
 // ─── API helpers ──────────────────────────────────────────
 function apiUrl(path){return (BASE_URL||'')+path}
-async function api(method,path,body=null){
+async function api(method,path,body=null,token=null){
   const opts={
     method,
-    headers:{'Content-Type':'application/json','X-Admin-Token':ADMIN_TOKEN}
+    headers:{'Content-Type':'application/json','X-Admin-Token':(token??ADMIN_TOKEN)}
   };
   if(body) opts.body=JSON.stringify(body);
   const r=await fetch(apiUrl(path),opts);
@@ -1646,14 +1698,14 @@ async function loadProviders(){
       <tr>
         <td>${p.id}</td>
         <td><code style="color:var(--accent-teal)">${p.name}</code></td>
-        <td>${p.display_name||'—'}</td>
+        <td>${p.display_name||' '}</td>
         <td><span class="badge ${p.provider_type==='agent'?'badge-purple':'badge-blue'}">${p.provider_type==='agent'?'智能体':'模型'}</span></td>
         <td><span class="td-mono" style="color:var(--text-secondary)">${p.base_url||'—'}</span></td>
         <td>${p.max_concurrency||50}</td>
         <td>${p.timeout_seconds||120}</td>
         <td><span class="badge ${p.is_enabled?'badge-green':'badge-red'}">${p.is_enabled?'启用':'禁用'}</span></td>
-        <td style="display:flex;gap:6px">
-          ${_BROWSER_MODE?'':`<button class="btn btn-sm" onclick='editProvider(${JSON.stringify(p)})'>编辑</button>
+        <td ${_BROWSER_MODE?'':' style="display:flex;gap:6px"'}>
+          ${_BROWSER_MODE?' ':`<button class="btn btn-sm" onclick='editProvider(${JSON.stringify(p)})'>编辑</button>
           <button class="btn btn-sm btn-danger" onclick='deleteProvider(${p.id},"${p.display_name||p.name}")'>删除</button>`}
         </td>
       </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
@@ -1747,8 +1799,8 @@ async function loadModels(){
         <td style="color:var(--accent-green)">¥${m.input_price}</td>
         <td style="color:var(--accent-orange)">¥${m.output_price}</td>
         <td>
-          <label class="switch" title="${m.is_enabled?'点击禁用':'点击启用'}">
-            <input type="checkbox" ${m.is_enabled?'checked':''} onchange="toggleModel(${m.id},this.checked)">
+          <label class="switch" title="${_BROWSER_MODE?'只读浏览模式':(m.is_enabled?'点击禁用':'点击启用')}">
+            <input type="checkbox" ${m.is_enabled?'checked':''} ${_BROWSER_MODE?'disabled':''} onchange="toggleModel(${m.id},this.checked)">
             <span class="slider"></span>
           </label>
 </td>
@@ -1798,6 +1850,7 @@ function toggleCozeBotField(providerName){
 function editModel(md){openModelModal(md);}
 
 async function toggleModel(id,enabled){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许修改状态','err');loadModels();return;}
   try{
     await api('PATCH',`/admin/models/${id}/enable?is_enabled=${enabled}`);
     toast(enabled?'已启用':'已禁用');
@@ -1900,8 +1953,8 @@ async function loadAgents(){
                 <td>${fmtToken(a.total_tokens||0)}</td>
                 <td style="color:var(--accent-orange)">¥${(a.total_cost||0).toFixed(4)}</td>
                 <td>
-                  <label class="switch" title="${a.is_enabled?'点击禁用':'点击启用'}">
-                    <input type="checkbox" ${a.is_enabled?'checked':''} onchange="toggleAgent(${a.id},this.checked)">
+                  <label class="switch" title="${_BROWSER_MODE?'只读浏览模式':(a.is_enabled?'点击禁用':'点击启用')}">
+                    <input type="checkbox" ${a.is_enabled?'checked':''} ${_BROWSER_MODE?'disabled':''} onchange="toggleAgent(${a.id},this.checked)">
                     <span class="slider"></span>
                   </label>
                 </td>
@@ -1975,6 +2028,7 @@ async function submitAgent(){
 }
 
 async function toggleAgent(id,enabled){
+  if(_BROWSER_MODE){toast('只读浏览模式，不允许修改状态','err');loadAgents();return;}
   try{
     await api('PATCH',`/admin/agents/${id}/enable?is_enabled=${enabled}`);
     toast(enabled?'已启用':'已禁用');

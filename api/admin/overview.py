@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from middleware.auth import authenticate_admin
 from crud.request_logs import get_overview_stats, get_hourly_stats
 from crud.billing import get_today_total_cost
+from crud.external_usage import get_external_total_tokens
 from models.admin_models import OverviewStats
 
 router = APIRouter()
@@ -17,10 +18,12 @@ async def overview() -> dict:
     """
     stats = await get_overview_stats()
     today_cost = await get_today_total_cost()
+    external_tokens = await get_external_total_tokens()
 
     total = stats.get("total_requests") or 0
     success = stats.get("success_requests") or 0
     success_rate = round(success / total * 100, 2) if total > 0 else 0.0
+    gw_tokens = int(stats.get("total_tokens") or 0)
 
     return {
         "total_requests":    total,
@@ -28,7 +31,9 @@ async def overview() -> dict:
         "error_requests":    int(stats.get("error_requests") or 0),
         "timeout_requests":  int(stats.get("timeout_requests") or 0),
         "success_rate":      success_rate,
-        "total_tokens":      int(stats.get("total_tokens") or 0),
+        "total_tokens":      gw_tokens + external_tokens,
+        "gateway_tokens":    gw_tokens,
+        "external_tokens":   external_tokens,
         "avg_duration_ms":   round(float(stats.get("avg_duration_ms") or 0), 2),
         "requests_today":    int(stats.get("requests_today") or 0),
         "tokens_today":      int(stats.get("tokens_today") or 0),

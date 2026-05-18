@@ -60,6 +60,13 @@ async def batch_create_external_usage(
     }
 
 
+async def get_external_total_tokens() -> int:
+    """返回 external_usage 表的历史总 token 数"""
+    async with DBHelper() as db:
+        row = await db.fetchone("SELECT COALESCE(SUM(total_tokens),0) AS total FROM external_usage")
+        return int(row["total"]) if row else 0
+
+
 async def get_external_usage_summary(
     tool_name: Optional[str] = None,
     provider_name: Optional[str] = None,

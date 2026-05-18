@@ -84,6 +84,7 @@ from api.admin.logs import router as logs_router
 from api.admin.billing_api import router as billing_router
 from api.admin.model_admin import router as model_admin_router
 from api.admin.agents import router as agents_router
+from api.admin.external_usage import router as external_usage_router
 
 app.include_router(overview_router)
 app.include_router(monitor_router)
@@ -93,6 +94,7 @@ app.include_router(logs_router)
 app.include_router(billing_router)
 app.include_router(model_admin_router)
 app.include_router(agents_router)
+app.include_router(external_usage_router)
 
 
 # ── 健康检查 ──────────────────────────────────────────────────

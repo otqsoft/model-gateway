@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Token Monitor</title>
-    <link rel="stylesheet" href="/static/style.css?v=3">
+    <link rel="stylesheet" href="/static/style.css?v=6">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <header>
@@ -45,6 +46,34 @@
                         <h3>网关同步失败</h3>
                         <p class="stat-value fail">0</p>
                     </div> -->
+                </div>
+
+                <div class="report-section">
+                    <div class="section-title">上报详情</div>
+                    <div class="report-stats-grid">
+                        <div class="report-stat-card">
+                            <div class="report-stat-label">上报状态</div>
+                            <div class="report-stat-value" id="report-status">
+                                <span class="status-dot status-stopped"></span>
+                                <span>未启用</span>
+                            </div>
+                        </div>
+                        <div class="report-stat-card">
+                            <div class="report-stat-label">成功次数</div>
+                            <div class="report-stat-value text-success" id="report-success-count">0</div>
+                        </div>
+                        <div class="report-stat-card">
+                            <div class="report-stat-label">失败次数</div>
+                            <div class="report-stat-value text-danger" id="report-fail-count">0</div>
+                        </div>
+                        <div class="report-stat-card">
+                            <div class="report-stat-label">成功率</div>
+                            <div class="report-stat-value" id="report-success-rate">-</div>
+                        </div>
+                    </div>
+                    <div class="report-chart-container">
+                        <canvas id="report-chart"></canvas>
+                    </div>
                 </div>
 
                 <div class="app-list">
@@ -113,6 +142,22 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=3"></script>
+    <div id="confirm-dialog" class="dialog-overlay" style="display:none">
+        <div class="dialog dialog-confirm">
+            <div class="dialog-header">
+                <h3>确认删除</h3>
+                <button type="button" class="dialog-close" onclick="closeConfirmDialog()">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <p id="confirm-message" class="confirm-message"></p>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmDialog()">取消</button>
+                <button type="button" class="btn btn-danger" id="confirm-ok-btn">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=6"></script>
 </body>
 </html>

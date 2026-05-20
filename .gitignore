@@ -9,6 +9,8 @@ bin-release/
 .workbuddy/
 __pycache__/
 vendor/
+dist/
+logs/
 
 # Executables
 *.swf
@@ -16,6 +18,9 @@ vendor/
 *.ipa
 *.apk
 *.pyc
+*.zip
+*.rar
+*.tar
 
 go.sum
 

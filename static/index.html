@@ -1123,7 +1123,7 @@ input:checked + .slider:before{
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-model')">取消</button>
-      <button class="btn btn-primary" onclick="submitModel()">保存</button>
+      <button class="btn btn-primary" id="md-save-btn" onclick="submitModel()">保存</button>
     </div>
   </div>
 </div>
@@ -1256,7 +1256,7 @@ input:checked + .slider:before{
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-key')">取消</button>
-      <button class="btn btn-primary" onclick="submitKey()">保存</button>
+      <button class="btn btn-primary" id="key-save-btn" onclick="submitKey()">保存</button>
     </div>
   </div>
 </div>
@@ -1883,16 +1883,16 @@ async function loadModels(){
           </label>
 </td>
         <td>
-          ${_BROWSER_MODE?'':`<button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button>
+          ${_BROWSER_MODE?`<button class="btn btn-sm" onclick='viewModel(${JSON.stringify(m)})'>查看</button>`:`<button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button>
           <button class="btn btn-sm btn-danger" onclick='deleteModel(${m.id},"${m.model_alias}")'>删除</button>`}
         </td>
       </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
   }catch(e){toast('加载模型失败: '+e.message,'err')}
 }
 
-async function openModelModal(md=null){
-  if(_BROWSER_MODE){toast('只读浏览模式，不允许编辑操作','err');return;}
-  document.getElementById('modal-model-title').textContent=md?'编辑模型':'新增模型';
+async function openModelModal(md=null, readonly=false){
+  if(_BROWSER_MODE && !readonly){toast('只读浏览模式，不允许编辑操作','err');return;}
+  document.getElementById('modal-model-title').textContent=md?(readonly?'查看模型':'编辑模型'):'新增模型';
   document.getElementById('md-id').value=md?md.id:'';
   document.getElementById('md-alias').value=md?md.model_alias:'';
   document.getElementById('md-upstream').value=md?md.upstream_model:'';
@@ -1911,6 +1911,16 @@ async function openModelModal(md=null){
   } catch(_) {}
   document.getElementById('md-bot-id').value = botId;
 
+  // 显示/隐藏保存按钮
+  document.getElementById('md-save-btn').style.display=readonly?'none':'block';
+  
+  // 设置输入框只读/禁用
+  const inputs=document.querySelectorAll('#modal-model .form-input, #modal-model .form-select');
+  inputs.forEach(i=>{
+    i.disabled=readonly;
+    i.style.background=readonly?'var(--bg-input-disabled)':'';
+  });
+
   // 填充供应商下拉，根据选中值显示/隐藏 Coze bot_id 字段
   const sel=document.getElementById('md-provider');
   try{
@@ -1918,7 +1928,9 @@ async function openModelModal(md=null){
     sel.innerHTML=ps.items.map(p=>`<option value="${p.name}" ${md&&md.provider_name===p.name?'selected':''}>${p.display_name||p.name}</option>`).join('');
   }catch(e){sel.innerHTML='<option>加载失败</option>';}
   toggleCozeBotField(sel.value);
-  sel.onchange=()=>toggleCozeBotField(sel.value);
+  if(!readonly){
+    sel.onchange=()=>toggleCozeBotField(sel.value);
+  }
   openModal('modal-model');
 }
 function toggleCozeBotField(providerName){
@@ -1926,6 +1938,7 @@ function toggleCozeBotField(providerName){
   g.style.display=providerName==='coze'?'block':'none';
 }
 function editModel(md){openModelModal(md);}
+function viewModel(md){openModelModal(md, true);}
 
 async function toggleModel(id,enabled){
   if(_BROWSER_MODE){toast('只读浏览模式，不允许修改状态','err');loadModels();return;}
@@ -2154,7 +2167,7 @@ async function loadKeys(pg=1){
         <td style="color:var(--accent-orange)">¥${(k.total_cost||0).toFixed(4)}</td>
         <td><span class="badge ${k.is_enabled?'badge-green':'badge-red'}">${k.is_enabled?'启用':'禁用'}</span></td>
         <td style="white-space:nowrap">
-          ${_BROWSER_MODE?'':`<button class="btn btn-sm" onclick='editKey(${JSON.stringify(k)})'>编辑</button>
+          ${_BROWSER_MODE?`<button class="btn btn-sm" onclick='viewKey(${JSON.stringify(k)})'>查看</button>`:`<button class="btn btn-sm" onclick='editKey(${JSON.stringify(k)})'>编辑</button>
           <button class="btn btn-sm btn-danger" onclick="deleteKey(${k.id},'${k.name||''}')">删除</button>`}
         </td>
       </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
@@ -2166,9 +2179,9 @@ async function loadKeys(pg=1){
 }
 function keysPage(d){loadKeys(keysCurrentPage+d);}
 
-async function openKeyModal(k=null){
-  if(_BROWSER_MODE){toast('只读浏览模式，不允许编辑操作','err');return;}
-  document.getElementById('modal-key-title').textContent=k?'编辑密钥':'创建 API 密钥';
+async function openKeyModal(k=null, readonly=false){
+  if(_BROWSER_MODE && !readonly){toast('只读浏览模式，不允许编辑操作','err');return;}
+  document.getElementById('modal-key-title').textContent=k?(readonly?'查看密钥':'编辑密钥'):'创建 API 密钥';
   document.getElementById('key-id').value=k?k.id:'';
   document.getElementById('key-name').value=k?k.name:'';
   document.getElementById('key-concurrency').value=k?k.max_concurrency:10;
@@ -2179,6 +2192,23 @@ async function openKeyModal(k=null){
   document.getElementById('key-time-start').value=k&&k.allowed_time_start?k.allowed_time_start:'00:00';
   document.getElementById('key-time-end').value=k&&k.allowed_time_end?k.allowed_time_end:'23:59';
   document.getElementById('key-remark').value=k?k.remark||'':'';
+  
+  // 显示/隐藏保存按钮
+  document.getElementById('key-save-btn').style.display=readonly?'none':'block';
+  
+  // 设置输入框只读/禁用
+  const inputs=document.querySelectorAll('#modal-key .form-input, #modal-key .form-select');
+  inputs.forEach(i=>{
+    i.disabled=readonly;
+    i.style.background=readonly?'var(--bg-input-disabled)':'';
+  });
+  
+  // 隐藏模型选择widget的编辑功能
+  document.getElementById('key-models-widget').style.pointerEvents=readonly?'none':'auto';
+  if(readonly){
+    document.getElementById('key-models-widget').classList.remove('open');
+  }
+  
   // models multi-select: 渲染 checkbox-select
   const selected=k?(Array.isArray(k.allowed_models)?k.allowed_models:[]):[];
   try{
@@ -2194,8 +2224,8 @@ async function openKeyModal(k=null){
     if(models.length>0){
       optHtml+=`<div style="padding:6px 12px;font-size:11px;color:var(--text-muted);background:var(--bg-card2);border-bottom:1px solid var(--border);letter-spacing:.05em">— 模型 —</div>`;
       optHtml+=models.map(m=>
-        `<div class="checkbox-select-opt${selected.includes(m.model_alias)?' selected':''}" data-alias="${m.model_alias}" onclick="toggleModelOpt('${m.model_alias.replace(/'/g,"\\'")}')">
-          <input type="checkbox"${selected.includes(m.model_alias)?' checked':''} onclick="event.stopPropagation()">
+        `<div class="checkbox-select-opt${selected.includes(m.model_alias)?' selected':''}" data-alias="${m.model_alias}" ${readonly?'':'onclick="toggleModelOpt(\''+m.model_alias.replace(/'/g,"\\'")+'\')"'}>
+          <input type="checkbox"${selected.includes(m.model_alias)?' checked':''} ${readonly?'disabled':''} onclick="event.stopPropagation()">
           <span class="checkbox-select-opt-alias">${m.model_alias}</span>
           <span class="checkbox-select-opt-provider">${m.provider_name}</span>
         </div>`
@@ -2205,8 +2235,8 @@ async function openKeyModal(k=null){
       optHtml+=`<div style="padding:6px 12px;font-size:11px;color:var(--text-muted);background:var(--bg-card2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);letter-spacing:.05em">— 智能体 —</div>`;
       optHtml+=agents.map(a=>{
         const alias='agent:'+a.name; // 用 agent: 前缀区分
-        return `<div class="checkbox-select-opt${selected.includes(alias)?' selected':''}" data-alias="${alias}" onclick="toggleModelOpt('${alias.replace(/'/g,"\\'")}')">
-          <input type="checkbox"${selected.includes(alias)?' checked':''} onclick="event.stopPropagation()">
+        return `<div class="checkbox-select-opt${selected.includes(alias)?' selected':''}" data-alias="${alias}" ${readonly?'':'onclick="toggleModelOpt(\''+alias.replace(/'/g,"\\'")+'\')"'}>
+          <input type="checkbox"${selected.includes(alias)?' checked':''} ${readonly?'disabled':''} onclick="event.stopPropagation()">
           <span class="checkbox-select-opt-alias">🤖 ${a.display_name||a.name}</span>
           <span class="checkbox-select-opt-provider">${a.provider_name}</span>
         </div>`;
@@ -2227,6 +2257,7 @@ async function openKeyModal(k=null){
   openModal('modal-key');
 }
 function editKey(k){openKeyModal(k);}
+function viewKey(k){openKeyModal(k, true);}
 
 // ─── CheckboxSelect helpers ──────────────────────────────
 let _ms_all_opts=[]; // {alias,provider}

@@ -9,6 +9,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type ReportRecord struct {
+	Timestamp        time.Time `json:"timestamp"`
+	AppName          string    `json:"app_name"`
+	Success          bool      `json:"success"`
+	PromptTokens     int       `json:"prompt_tokens"`
+	CompletionTokens int       `json:"completion_tokens"`
+	ErrorMsg         string    `json:"error_msg,omitempty"`
+}
+
 type Manager struct {
 	config              *config.Config
 	gateway             *gateway.Client
@@ -21,6 +30,7 @@ type Manager struct {
 	gatewaySuccessCount int
 	gatewayFailCount    int
 	gatewayLastLogTime  time.Time
+	reportHistory       []ReportRecord
 }
 
 type AppStats struct {
@@ -199,6 +209,15 @@ func (m *Manager) GetGatewayStats() map[string]int {
 	}
 }
 
+func (m *Manager) GetReportHistory() []ReportRecord {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	history := make([]ReportRecord, len(m.reportHistory))
+	copy(history, m.reportHistory)
+	return history
+}
+
 func (m *Manager) RecordTraffic(appName string, sentBytes, receivedBytes uint64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -319,6 +338,8 @@ func (m *Manager) reportStats() {
 		return
 	}
 
+	now := time.Now()
+
 	for appName, stats := range m.stats {
 		if stats.SessionPromptTokens == 0 && stats.SessionCompletionTokens == 0 {
 			continue
@@ -333,20 +354,34 @@ func (m *Manager) reportStats() {
 		}
 
 		err := m.gateway.ReportUsage(report)
+		record := ReportRecord{
+			Timestamp:        now,
+			AppName:          appName,
+			PromptTokens:     int(stats.SessionPromptTokens),
+			CompletionTokens: int(stats.SessionCompletionTokens),
+		}
 		if err != nil {
 			m.gatewayFailCount++
+			record.Success = false
+			record.ErrorMsg = err.Error()
 			if time.Since(m.gatewayLastLogTime) >= 5*time.Minute || m.gatewayFailCount <= 1 {
 				logrus.Warnf("Failed to report usage for %s: %v (consecutive failures: %d)", appName, err, m.gatewayFailCount)
 				m.gatewayLastLogTime = time.Now()
 			}
 		} else {
 			m.gatewaySuccessCount++
+			record.Success = true
 			if m.gatewayFailCount > 0 {
 				logrus.Infof("Gateway recovered after %d failures", m.gatewayFailCount)
 				m.gatewayFailCount = 0
 			}
 			logrus.Infof("Reported usage for %s: prompt=%d, completion=%d",
 				appName, stats.SessionPromptTokens, stats.SessionCompletionTokens)
+		}
+
+		m.reportHistory = append(m.reportHistory, record)
+		if len(m.reportHistory) > 200 {
+			m.reportHistory = m.reportHistory[len(m.reportHistory)-200:]
 		}
 
 		stats.SessionSentBytes = 0

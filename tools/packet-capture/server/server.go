@@ -47,6 +47,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/config", s.getConfig)
 		api.POST("/config", s.updateConfig)
 		api.POST("/test/traffic", s.addTestTraffic)
+		api.GET("/report-history", s.getReportHistory)
 	}
 }
 
@@ -136,5 +137,13 @@ func (s *Server) addTestTraffic(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": fmt.Sprintf("Added traffic for %s: sent=%d, received=%d", req.AppName, req.SentBytes, req.ReceivedBytes),
+	})
+}
+
+func (s *Server) getReportHistory(c *gin.Context) {
+	history := s.monitor.GetReportHistory()
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    history,
 	})
 }

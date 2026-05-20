@@ -276,6 +276,10 @@ func (m *Manager) reportStats() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	if !m.config.Gateway.Enabled {
+		return
+	}
+
 	for appName, stats := range m.stats {
 		if stats.SessionPromptTokens == 0 && stats.SessionCompletionTokens == 0 {
 			continue

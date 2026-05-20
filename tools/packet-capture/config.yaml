@@ -3,7 +3,7 @@ server:
     web_root: ./web
 gateway:
     url: http://localhost:8086/admin/external-usage/report
-    enabled: true
+    enabled: false
     report_interval: 10
 monitored_apps:
     - name: doubao
@@ -30,6 +30,15 @@ monitored_apps:
         - Cursor
       token_ratio: 4
       network_ratio: 0.005
+    - name: WorkBuddy
+      tool_name: WorkBuddy
+      provider_name: Tencent
+      process_names:
+        - WorkBuddy
+        - WorkBuddy.exe
+        - workbuddy
+      token_ratio: 4
+      network_ratio: 0.05
 log:
     level: info
     file: ./logs/app.log

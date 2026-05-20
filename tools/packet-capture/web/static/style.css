@@ -27,7 +27,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    background: var(--bg);
+    background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 50%, #e0f2fe 100%);
     color: var(--text-primary);
     min-height: 100vh;
     font-size: 14px;
@@ -41,8 +41,9 @@ body {
 }
 
 header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     padding: 0 24px;
     position: sticky;
     top: 0;
@@ -118,10 +119,12 @@ main {
 }
 
 .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: var(--radius);
     padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .stat-card h3 {
@@ -155,11 +158,13 @@ main {
 }
 
 .app-stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: var(--radius);
     padding: 20px;
     transition: box-shadow .15s;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .app-stat-card:hover {
@@ -277,7 +282,12 @@ main {
 }
 
 .config-section {
-    max-width: 720px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .config-row {
@@ -387,14 +397,16 @@ main {
 }
 
 .app-config-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: var(--radius);
     padding: 16px 20px;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .app-config-info {

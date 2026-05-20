@@ -221,6 +221,9 @@ function confirmAddApp() {
 
 function removeApp(idx) {
     if (!currentConfig || !currentConfig.monitored_apps) return;
+    const app = currentConfig.monitored_apps[idx];
+    if (!app) return;
+    if (!confirm(`确定要删除监控应用「${app.name}」吗？`)) return;
     currentConfig.monitored_apps.splice(idx, 1);
     renderAppList(currentConfig.monitored_apps);
     saveConfig();
@@ -238,8 +241,13 @@ async function saveConfig() {
     try {
         const resp = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newCfg) });
         const result = await resp.json();
-        if (result.success) { showAlert('配置已保存', 'success'); currentConfig = newCfg; }
-        else showAlert('保存失败: ' + result.error, 'error');
+        if (result.success) { 
+            showAlert('配置已保存', 'success'); 
+            currentConfig = newCfg;
+            loadStats();
+        } else {
+            showAlert('保存失败: ' + result.error, 'error');
+        }
     } catch (e) {
         showAlert('保存失败: ' + e.message, 'error');
     }

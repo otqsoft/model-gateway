@@ -231,7 +231,10 @@ func (m *Manager) UpdateConfig(cfg *config.Config) {
 	defer m.mu.Unlock()
 
 	m.config = cfg
+
+	appNames := make(map[string]bool)
 	for _, app := range cfg.MonitoredApps {
+		appNames[app.Name] = true
 		if _, ok := m.stats[app.Name]; !ok {
 			m.stats[app.Name] = &AppStats{
 				ToolName:     app.ToolName,
@@ -242,6 +245,12 @@ func (m *Manager) UpdateConfig(cfg *config.Config) {
 			m.stats[app.Name].ToolName = app.ToolName
 			m.stats[app.Name].ProviderName = app.ProviderName
 			m.stats[app.Name].ProcessNames = app.ProcessNames
+		}
+	}
+
+	for name := range m.stats {
+		if !appNames[name] {
+			delete(m.stats, name)
 		}
 	}
 }

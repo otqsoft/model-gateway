@@ -88,7 +88,7 @@ go run main.go
 
 打开浏览器访问：`http://localhost:8080`
 
-![](..\..\static\images\token.png)
+![](static\images\token.png)
 
 ## 测试统计功能
 

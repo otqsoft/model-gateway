@@ -8,6 +8,7 @@ bin-release/
 .settings/
 .workbuddy/
 __pycache__/
+vendor/
 
 # Executables
 *.swf
@@ -15,6 +16,8 @@ __pycache__/
 *.ipa
 *.apk
 *.pyc
+
+go.sum
 
 # Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
 # should NOT be excluded as they contain compiler settings and other important

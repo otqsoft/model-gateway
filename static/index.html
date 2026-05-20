@@ -182,6 +182,7 @@ body::before{
 }
 
 .logo{
+  height:var(--topbar-h);
   padding:20px 16px 16px;display:flex;align-items:center;gap:10px;
   border-bottom:1px solid var(--border);
   font-size:17px;font-weight:700;letter-spacing:.5px;
@@ -885,7 +886,7 @@ input:checked + .slider:before{
             <div class="form-label">Key ID</div>
             <input class="form-input" id="log-kid" placeholder="Key ID">
           </div>
-          <button class="btn btn-primary" onclick="loadLogs(1)" style="height:36px">搜索</button>
+          <button class="btn btn-primary" onclick="loadLogs(1)" style="height:32px">搜索</button>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -960,7 +961,7 @@ input:checked + .slider:before{
           <span style="color:var(--text-muted);font-size:12px">至</span>
           <input type="date" class="form-input" id="ext-end" style="width:140px;padding:5px 8px;font-size:12px"
                  onchange="loadExternal()">
-          <button class="btn btn-sm" onclick="loadExternal()">↻ 刷新</button>
+          <button class="btn btn-primary" style="height:28px; padding:0 12px" onclick="loadExternal()">搜索</button>
         </div>
       </div>
 
@@ -973,40 +974,40 @@ input:checked + .slider:before{
       </div>
 
       <!-- 分组汇总表 -->
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-title">📊 分组汇总</div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr>
-              <th id="ext-group-col">分组</th>
-              <th>请求数</th><th>输入Token</th><th>输出Token</th><th>总Token</th><th>估算费用(元)</th>
-            </tr></thead>
-            <tbody id="ext-summary-tbody">
-              <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="card-title">📊 分组汇总</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th id="ext-group-col">分组</th>
+            <th>请求数</th><th>输入Token</th><th>输出Token</th><th>总Token</th><th>估算费用(元)</th>
+          </tr></thead>
+          <tbody id="ext-summary-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- 明细列表 -->
-      <div class="card">
-        <div class="card-title" style="justify-content:space-between">
-          <span>📋 使用明细</span>
-          <span id="ext-detail-total" style="font-size:12px;color:var(--text-muted)"></span>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr>
-              <th>工具</th><th>厂商</th><th>模型</th><th>来源</th>
-              <th>输入Token</th><th>输出Token</th><th>总Token</th><th>费用(元)</th><th>时间</th>
-            </tr></thead>
-            <tbody id="ext-detail-tbody">
-              <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <!-- 分页 -->
-        <div style="display:flex;justify-content:center;gap:6px;padding:12px 0" id="ext-pager"></div>
+      <div class="card-title" style="justify-content:space-between; margin-top:16px">
+        <span>📋 使用明细</span>
+        <span id="ext-detail-total" style="font-size:12px;color:var(--text-muted);display:none"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>工具</th><th>厂商</th><th>模型</th><th>来源</th>
+            <th>输入Token</th><th>输出Token</th><th>总Token</th><th>费用(元)</th><th>时间</th>
+          </tr></thead>
+          <tbody id="ext-detail-tbody">
+            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- 分页 -->
+      <div class="pager" id="ext-pager">
+        <span class="pager-info" id="ext-pager-info"></span>
+        <button class="btn btn-sm" id="ext-prev" onclick="extPage(-1)">‹ 上一页</button>
+        <button class="btn btn-sm" id="ext-next" onclick="extPage(1)">下一页 ›</button>
       </div>
     </div>
 
@@ -2415,7 +2416,7 @@ async function loadLogs(pg=1){
         <td>${r.ttft_ms||'—'}</td>
         <td>${fmtNum(r.prompt_tokens||0)}</td>
         <td>${fmtNum(r.completion_tokens||0)}</td>
-        <td style="color:var(--text-muted);font-size:11px">${r.client_ip||'—'}</td>
+        <td style="font-size:11px;white-space:nowrap">${r.client_ip||'—'}</td>
         <td style="font-size:11px;white-space:nowrap">${fmtTime(r.started_at)}</td>
         <td><button class="btn btn-sm" onclick="showLogDetail('${r.request_id}')">详情</button></td>
       </tr>`).join('')||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
@@ -2551,19 +2552,22 @@ async function loadExternal(page=1){
         <td>${fmtNum(r.completion_tokens||0)}</td>
         <td style="font-weight:600">${fmtToken(r.total_tokens||0)}</td>
         <td style="color:var(--accent-orange)">¥${(r.total_cost||0).toFixed(4)}</td>
-        <td style="font-size:11px;color:var(--text-muted)">${fmtTime(r.created_at)}</td>
+        <td style="font-size:11px;white-space:nowrap">${fmtTime(r.created_at)}</td>
       </tr>`).join('')
     : `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>`;
 
     // 分页
     const totalPages = Math.ceil(d.total / 20);
-    renderExtPager(page, totalPages);
+    renderExtPager(page, totalPages, d.total);
   }catch(e){toast('明细加载失败: '+e.message,'err')}
 }
 
-function renderExtPager(cur, total){
+function renderExtPager(cur, total, totalCount){
   const el = document.getElementById('ext-pager');
   if(total <= 1){el.innerHTML=''; return;}
+  document.getElementById('ext-pager-info').textContent=`共 ${totalCount} 条，第 ${cur}/${total} 页`;
+  document.getElementById('ext-prev').disabled=cur<=1;
+  document.getElementById('ext-next').disabled=cur>=total;
   let html='';
   for(let i=1;i<=total;i++){
     if(i===1||i===total||Math.abs(i-cur)<=2){
@@ -2572,8 +2576,12 @@ function renderExtPager(cur, total){
       html+=`<span style="color:var(--text-muted);padding:0 4px">…</span>`;
     }
   }
-  el.innerHTML=html;
+  el.innerHTML=`<span class="pager-info" id="ext-pager-info">${document.getElementById('ext-pager-info').textContent}</span>
+    <button class="btn btn-sm" id="ext-prev" onclick="extPage(-1)">‹ 上一页</button>
+    ${html}
+    <button class="btn btn-sm" id="ext-next" onclick="extPage(1)">下一页 ›</button>`;
 }
+function extPage(d){loadExternal(extCurrentPage+d);}
 
 // ─── Settings ─────────────────────────────────────────────
 function showSettings(){

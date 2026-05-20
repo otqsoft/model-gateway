@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Monitor</title>
+    <link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <h1>Token Monitor</h1>
+            <nav>
+                <button class="tab-btn active" onclick="showTab('dashboard', this)">监控</button>
+                <button class="tab-btn" onclick="showTab('config', this)">配置</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            <div id="dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>发送流量</h3>
+                        <p class="stat-value" id="total-sent">0 B</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>接收流量</h3>
+                        <p class="stat-value" id="total-received">0 B</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>输入 Token</h3>
+                        <p class="stat-value" id="total-prompt">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>输出 Token</h3>
+                        <p class="stat-value" id="total-completion">0</p>
+                    </div>
+                </div>
+
+                <div class="app-list">
+                    <div class="section-title">应用详情</div>
+                    <div id="app-stats-container" class="app-stats-container"></div>
+                </div>
+            </div>
+
+            <div id="config" class="tab-content">
+                <div class="config-section">
+                    <div class="config-row">
+                        <div class="config-row-label">
+                            <span class="config-row-title">网关上报</span>
+                            <span class="config-row-desc">将 Token 用量数据上报到网关</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="gateway-enabled">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="section-title" style="margin-top:24px">监控应用</div>
+                    <div id="monitored-apps-container"></div>
+                    <button type="button" class="btn btn-secondary" onclick="openAddDialog()">添加应用</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="app-dialog" class="dialog-overlay" style="display:none">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h3>添加应用</h3>
+                <button type="button" class="dialog-close" onclick="closeAddDialog()">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div class="form-group">
+                    <label>应用名称</label>
+                    <input type="text" id="dlg-name" placeholder="doubao">
+                </div>
+                <div class="form-group">
+                    <label>tool_name</label>
+                    <input type="text" id="dlg-toolname" placeholder="doubao">
+                </div>
+                <div class="form-group">
+                    <label>provider_name</label>
+                    <input type="text" id="dlg-provider" placeholder="doubao">
+                </div>
+                <div class="form-group">
+                    <label>进程名称（逗号分隔）</label>
+                    <input type="text" id="dlg-process-names" placeholder="doubao,DoubaoDesktop">
+                </div>
+                <div class="form-group">
+                    <label>Token 换算比（字节/Token）</label>
+                    <input type="number" id="dlg-token-ratio" value="4" step="0.5" min="1" max="20">
+                </div>
+                <div class="form-group">
+                    <label>网络流量占比</label>
+                    <input type="number" id="dlg-network-ratio" value="0.05" step="0.001" min="0.001" max="1">
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddDialog()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="confirmAddApp()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=3"></script>
+</body>
+</html>

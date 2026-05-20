@@ -1,0 +1,35 @@
+server:
+    port: 8080
+    web_root: ./web
+gateway:
+    url: http://localhost:8086/admin/external-usage/report
+    enabled: true
+    report_interval: 10
+monitored_apps:
+    - name: doubao
+      tool_name: doubao
+      provider_name: doubao
+      process_names:
+        - doubao
+        - DoubaoDesktop
+      token_ratio: 4
+      network_ratio: 0.1
+    - name: trae
+      tool_name: trae
+      provider_name: trae
+      process_names:
+        - trae
+        - Trae
+      token_ratio: 4
+      network_ratio: 0.005
+    - name: cursor
+      tool_name: cursor
+      provider_name: cursor
+      process_names:
+        - cursor
+        - Cursor
+      token_ratio: 4
+      network_ratio: 0.005
+log:
+    level: info
+    file: ./logs/app.log

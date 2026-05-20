@@ -147,9 +147,8 @@ main {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 12px;
+    margin-bottom: 2px;
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-light);
 }
 
 .app-stats-container {

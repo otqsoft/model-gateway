@@ -419,6 +419,7 @@ tr:hover td{background:rgba(56,189,248,.04)}
   background:rgba(6,11,20,.8);
 }
 .form-textarea{resize:vertical;min-height:80px}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-hint{font-size:12px;color:var(--text-muted);margin-top:4px}
 
@@ -2564,10 +2565,10 @@ async function loadExternal(page=1){
 
 function renderExtPager(cur, total, totalCount){
   const el = document.getElementById('ext-pager');
-  if(total <= 1){el.innerHTML=''; return;}
-  document.getElementById('ext-pager-info').textContent=`共 ${totalCount} 条，第 ${cur}/${total} 页`;
-  document.getElementById('ext-prev').disabled=cur<=1;
-  document.getElementById('ext-next').disabled=cur>=total;
+  if(total <= 1){
+    el.innerHTML=`<span class="pager-info" id="ext-pager-info">共 ${totalCount} 条</span>`;
+    return;
+  }
   let html='';
   for(let i=1;i<=total;i++){
     if(i===1||i===total||Math.abs(i-cur)<=2){
@@ -2576,10 +2577,10 @@ function renderExtPager(cur, total, totalCount){
       html+=`<span style="color:var(--text-muted);padding:0 4px">…</span>`;
     }
   }
-  el.innerHTML=`<span class="pager-info" id="ext-pager-info">${document.getElementById('ext-pager-info').textContent}</span>
-    <button class="btn btn-sm" id="ext-prev" onclick="extPage(-1)">‹ 上一页</button>
+  el.innerHTML=`<span class="pager-info" id="ext-pager-info">共 ${totalCount} 条，第 ${cur}/${total} 页</span>
+    <button class="btn btn-sm" id="ext-prev" onclick="extPage(-1)"${cur<=1?' disabled':''}>‹ 上一页</button>
     ${html}
-    <button class="btn btn-sm" id="ext-next" onclick="extPage(1)">下一页 ›</button>`;
+    <button class="btn btn-sm" id="ext-next" onclick="extPage(1)"${cur>=total?' disabled':''}>下一页 ›</button>`;
 }
 function extPage(d){loadExternal(extCurrentPage+d);}
 

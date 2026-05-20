@@ -12,13 +12,13 @@ async function loadStats() {
     try {
         const resp = await fetch('/api/stats');
         const result = await resp.json();
-        if (result.success) updateStats(result.data);
+        if (result.success) updateStats(result.data, result.gateway || {});
     } catch (e) {
         console.error('loadStats failed:', e);
     }
 }
 
-function updateStats(stats) {
+function updateStats(stats, gateway) {
     let totalSent = 0, totalReceived = 0, totalPrompt = 0, totalCompletion = 0;
     const container = document.getElementById('app-stats-container');
     container.innerHTML = '';
@@ -56,7 +56,7 @@ function updateStats(stats) {
             <div class="app-meta">
                 <span class="meta-item">${s.ProviderName || '-'}</span>
                 <span class="meta-item">${pnames.join(', ')}</span>
-                ${procs.length ? `<span class="meta-item meta-running">${procs.join(', ')}</span>` : ''}
+                ${procs.length ? `<span class="meta-item meta-running" title="${procs.join(', ')}">${procs.length > 6 ? procs.slice(0, 6).join(', ') + '...' : procs.join(', ')}</span>` : ''}
             </div>
             <div class="app-stat-details">
                 <div class="app-stat-detail">
@@ -95,6 +95,9 @@ function updateStats(stats) {
     document.getElementById('total-received').textContent = formatBytes(totalReceived);
     document.getElementById('total-prompt').textContent = totalPrompt.toLocaleString();
     document.getElementById('total-completion').textContent = totalCompletion.toLocaleString();
+    
+    document.getElementById('gateway-success').querySelector('.stat-value').textContent = (gateway.success_count || 0).toLocaleString();
+    document.getElementById('gateway-fail').querySelector('.stat-value').textContent = (gateway.fail_count || 0).toLocaleString();
 }
 
 function formatBytes(bytes) {

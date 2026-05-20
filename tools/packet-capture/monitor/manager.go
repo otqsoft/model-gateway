@@ -10,15 +10,17 @@ import (
 )
 
 type Manager struct {
-	config             *config.Config
-	gateway            *gateway.Client
-	stats              map[string]*AppStats
-	processMonitor     *ProcessMonitor
-	mu                 sync.RWMutex
-	running            bool
-	stopChan           chan struct{}
-	gatewayFailCount   int
-	gatewayLastLogTime time.Time
+	config              *config.Config
+	gateway             *gateway.Client
+	stats               map[string]*AppStats
+	processMonitor      *ProcessMonitor
+	mu                  sync.RWMutex
+	running             bool
+	stopChan            chan struct{}
+	reportStopChan      chan struct{}
+	gatewaySuccessCount int
+	gatewayFailCount    int
+	gatewayLastLogTime  time.Time
 }
 
 type AppStats struct {
@@ -68,7 +70,11 @@ func (m *Manager) Start() {
 	}
 
 	go m.monitorLoop()
-	go m.reportLoop()
+	if m.config.Gateway.Enabled {
+		go m.reportLoop()
+	} else {
+		logrus.Info("Gateway reporting disabled, report loop not started")
+	}
 }
 
 func (m *Manager) Stop() {
@@ -183,6 +189,16 @@ func (m *Manager) GetStats() map[string]*AppStats {
 	return stats
 }
 
+func (m *Manager) GetGatewayStats() map[string]int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return map[string]int{
+		"success_count": m.gatewaySuccessCount,
+		"fail_count":    m.gatewayFailCount,
+	}
+}
+
 func (m *Manager) RecordTraffic(appName string, sentBytes, receivedBytes uint64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -228,9 +244,12 @@ func (m *Manager) AddTraffic(appName string, sent, received uint64) {
 
 func (m *Manager) UpdateConfig(cfg *config.Config) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+
+	oldEnabled := m.config.Gateway.Enabled
+	oldInterval := m.config.Gateway.GetReportInterval()
 
 	m.config = cfg
+	m.gateway.UpdateConfig(cfg)
 
 	appNames := make(map[string]bool)
 	for _, app := range cfg.MonitoredApps {
@@ -253,11 +272,29 @@ func (m *Manager) UpdateConfig(cfg *config.Config) {
 			delete(m.stats, name)
 		}
 	}
+
+	m.mu.Unlock()
+
+	if !oldEnabled && cfg.Gateway.Enabled {
+		go m.reportLoop()
+	}
+
+	if oldInterval != cfg.Gateway.GetReportInterval() {
+		go m.reportLoop()
+	}
 }
 
 func (m *Manager) reportLoop() {
 	interval := time.Duration(m.config.Gateway.GetReportInterval()) * time.Second
 	logrus.Infof("Gateway report interval: %v", interval)
+
+	stopChan := make(chan struct{})
+	m.mu.Lock()
+	if m.reportStopChan != nil {
+		close(m.reportStopChan)
+	}
+	m.reportStopChan = stopChan
+	m.mu.Unlock()
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -266,6 +303,8 @@ func (m *Manager) reportLoop() {
 		select {
 		case <-ticker.C:
 			m.reportStats()
+		case <-stopChan:
+			return
 		case <-m.stopChan:
 			return
 		}
@@ -301,6 +340,7 @@ func (m *Manager) reportStats() {
 				m.gatewayLastLogTime = time.Now()
 			}
 		} else {
+			m.gatewaySuccessCount++
 			if m.gatewayFailCount > 0 {
 				logrus.Infof("Gateway recovered after %d failures", m.gatewayFailCount)
 				m.gatewayFailCount = 0

@@ -45,6 +45,10 @@ func NewClient(cfg *config.Config) *Client {
 	}
 }
 
+func (c *Client) UpdateConfig(cfg *config.Config) {
+	c.config = cfg
+}
+
 func (c *Client) ReportUsage(item *UsageItem) error {
 	if !c.config.Gateway.Enabled {
 		logrus.Debug("Gateway reporting disabled")

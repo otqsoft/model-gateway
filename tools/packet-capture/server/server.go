@@ -74,9 +74,11 @@ func (s *Server) Stop() {
 
 func (s *Server) getStats(c *gin.Context) {
 	stats := s.monitor.GetStats()
+	gatewayStats := s.monitor.GetGatewayStats()
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    stats,
+		"gateway": gatewayStats,
 	})
 }
 

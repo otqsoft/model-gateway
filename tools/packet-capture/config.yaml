@@ -17,7 +17,7 @@ monitored_apps:
       # 豆包桌面端混合了大量非AI的图文媒体流量，API占比约10%
       network_ratio: 0.10
 
-    # ── Trae（腾讯AI编程助手）────────────────────────────────────────
+    # ── Trae（字节AI编程助手）────────────────────────────────────────
     - name: trae
       tool_name: trae
       provider_name: trae
@@ -49,4 +49,6 @@ monitored_apps:
 
 log:
     level: info
-    file: ./logs/app.log
+    # dir: 日志目录，程序会自动按天生成 app-YYYY-MM-DD.log
+    # 同时同步输出到控制台（stdout）
+    dir: ./logs

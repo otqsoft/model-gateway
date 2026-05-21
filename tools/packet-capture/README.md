@@ -12,17 +12,21 @@
 6. **SSE流式解析**：支持解析流式（stream）响应中携带的usage字段
 7. **自适应估算器**：在无法精确解析时，根据历史精确样本动态校准字节→Token比率
 8. **精度追踪**：区分"精确解析"和"字节估算"两种来源，实时显示token精度
+9. **每日日志轮转**：日志按天自动切割为 `logs/app-YYYY-MM-DD.log`，同步输出到控制台
 
 ## 项目结构
 
 ```
 token/
-├── main.go              # 主程序入口
+├── main.go              # 主程序入口（含日志初始化）
 ├── go.mod               # Go模块依赖
 ├── config.yaml          # 配置文件
 ├── README.md            # 使用说明
 ├── config/
 │   └── config.go        # 配置模块
+├── logger/
+│   ├── logger.go        # 每日自动轮转日志写入器
+│   └── logger_test.go   # 单元测试
 ├── monitor/
 │   ├── manager.go       # 监控管理器（含自适应估算逻辑）
 │   ├── process.go       # 进程IO采样
@@ -44,7 +48,10 @@ token/
 ### 1. 安装依赖
 
 ```bash
-go mod download
+# 初始化模块
+go mod tidy
+# 安装依赖
+go mod vendor
 ```
 
 ### 2. 配置
@@ -266,18 +273,16 @@ def response(flow):
 
 ```json
 {
-  "request_id": "uuid",
-  "tool_name": "doubao",
-  "provider_name": "doubao",
-  "prompt_tokens": 512,
-  "completion_tokens": 256,
-  "total_tokens": 768,
-  "detail": {
-    "type": "session",
-    "token_source": "parsed",
-    "token_accuracy": 0.95,
-    "model": "doubao-pro-32k"
-  }
+ "source": "packet_capture",
+ "items": [{
+    "request_id": "uuid-xxx5",
+    "tool_name": "doubao",
+    "provider_name": "doubao",
+    "model_alias": "doubao-pro-32k",
+    "prompt_tokens": 1500,
+    "completion_tokens": 800,
+    "total_tokens": 2300
+ }]
 }
 ```
 

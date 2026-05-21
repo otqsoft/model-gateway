@@ -60,7 +60,11 @@ func (a *MonitoredApp) GetNetworkRatio() float64 {
 
 type LogConfig struct {
 	Level string `yaml:"level" json:"level"`
-	File  string `yaml:"file" json:"file"`
+	// Dir: 日志目录，每天自动生成 app-YYYY-MM-DD.log。
+	// 优先级高于 File 字段。若不配置则默认使用 ./logs/。
+	Dir string `yaml:"dir" json:"dir"`
+	// File: 已废弃，仅保留兼容旧配置，其目录部分会被用作日志目录。
+	File string `yaml:"file,omitempty" json:"file,omitempty"`
 }
 
 func LoadConfig(filePath string) (*Config, error) {

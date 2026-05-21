@@ -70,7 +70,7 @@ func (c *Client) ReportUsage(item *UsageItem) error {
 		return fmt.Errorf("failed to marshal report: %w", err)
 	}
 
-	logrus.Infof("Sending usage report: %s", string(jsonData))
+	logrus.Debug("Sending usage report: %s", string(jsonData))
 
 	req, err := http.NewRequest("POST", c.config.Gateway.URL, bytes.NewBuffer(jsonData))
 	if err != nil {

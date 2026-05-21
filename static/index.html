@@ -229,6 +229,10 @@ body::before{
 .nav-item svg{opacity:.7;flex-shrink:0;transition:all .2s}
 .nav-item:hover svg,.nav-item.active svg{opacity:1}
 .nav-item.active svg{filter:drop-shadow(0 0 4px rgba(56,189,248,.5))}
+.nav-item .help-icon{
+  margin-left:auto;opacity:.5;color:var(--accent-blue);cursor:pointer;
+}
+.nav-item .help-icon:hover{opacity:1;transform:scale(1.1)}
 
 .sidebar-footer{
   margin-top:auto;padding:8px 0;border-top:1px solid var(--border);
@@ -273,6 +277,13 @@ body::before{
 .btn-primary:hover{
   background:linear-gradient(135deg,rgba(56,189,248,.3),rgba(6,182,212,.25));
   box-shadow:0 0 20px rgba(56,189,248,.25);color:var(--accent-blue);
+}
+.btn-help{
+  background:transparent;border:none;color:var(--text-secondary);
+  margin-left:5px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+}
+.btn-help:hover{
+  background:rgba(56,189,248,.1);color:var(--accent-blue);
 }
 .btn-danger{
   background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.4);color:var(--accent-red);
@@ -834,7 +845,11 @@ input:checked + .slider:before{
     <!-- ══════════ PAGE: API KEYS ══════════ -->
     <div class="page" id="page-keys">
       <div class="section-hd">
-        <div class="section-title">API 密钥管理</div>
+        <div class="section-title">API 密钥管理
+          <button class="btn-help" onclick="window.open('/static/help.html', '_blank')"  title="查看 API密钥 使用说明">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="1"/></svg>
+          </button>
+        </div>        
         <button class="btn btn-primary" onclick="openKeyModal()">+ 创建密钥</button>
       </div>
       <div class="tbl-wrap">
@@ -1329,11 +1344,11 @@ input:checked + .slider:before{
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">ADMIN_TOKEN</label>
-        <input class="form-input" id="verify-token-input" type="password" placeholder="输入管理员 Token"
+        <label class="form-label">管理员密钥</label>
+        <input class="form-input" id="verify-token-input" type="password" placeholder="输入管理员密钥"
                style="font-family:'JetBrains Mono',monospace"
                onkeydown="if(event.key==='Enter')submitTokenVerify()">
-        <div class="form-hint">请输入正确的 ADMIN_TOKEN 以进入管理页面</div>
+        <div class="form-hint">请输入正确的管理员密钥以进入管理页面</div>
       </div>
     </div>
     <div class="modal-footer">

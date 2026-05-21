@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 密钥使用说明</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-light: rgba(59,130,246,.12);
+            --green: #22c55e;
+            --green-light: rgba(34,197,94,.1);
+            --orange: #f97316;
+            --orange-light: rgba(249,115,22,.1);
+            --red: #ef4444;
+            --red-light: rgba(239,68,68,.1);
+            --purple: #a78bfa;
+            --purple-light: rgba(167,139,250,.1);
+            --teal: #2dd4bf;
+            --teal-light: rgba(45,212,191,.1);
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card2: #334155;
+            --bg-code: #0c1222;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --border-light: #475569;
+            --radius: 10px;
+            --radius-sm: 6px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* ── Sticky Nav ── */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15,23,42,.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+        }
+        .top-nav-inner {
+            max-width: 860px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            height: 52px;
+            gap: 6px;
+            overflow-x: auto;
+        }
+        .top-nav-inner::-webkit-scrollbar { display: none; }
+        .top-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
+            transition: all .15s;
+        }
+        .top-nav a:hover, .top-nav a.active {
+            color: var(--text);
+            background: var(--primary-light);
+        }
+
+        /* ── Layout ── */
+        .container { max-width: 860px; margin: 0 auto; padding: 24px 20px 60px; }
+
+        /* ── Header ── */
+        .hero {
+            text-align: center;
+            padding: 48px 24px 40px;
+        }
+        .hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 10px; letter-spacing: -.02em; }
+        .hero p { color: var(--text-secondary); font-size: 15px; max-width: 520px; margin: 0 auto; }
+
+        /* ── Quick Start ── */
+        .quick-start {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 36px;
+        }
+        .qs-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+        }
+        .qs-item .qs-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .qs-item .qs-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .qs-item .qs-value { font-size: 14px; font-weight: 600; word-break: break-all; font-family: 'Consolas','Monaco',monospace; }
+
+        /* ── Card ── */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card h2 .icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 20px 0 12px;
+            color: var(--text);
+        }
+        .card p, .card li {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .card ul, .card ol { padding-left: 20px; }
+        .card li { margin-bottom: 6px; }
+
+        /* ── Steps ── */
+        .steps { margin: 16px 0; }
+        .step {
+            padding: 10px 12px 10px 44px;
+            position: relative;
+            margin-bottom: 4px;
+            border-radius: var(--radius-sm);
+            transition: background .15s;
+        }
+        .step:hover { background: rgba(255,255,255,.03); }
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 12px;
+            top: 10px;
+            width: 22px; height: 22px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .step strong { color: var(--text); }
+
+        /* ── Code Block ── */
+        .code-wrap { position: relative; margin: 12px 0; }
+        .code-wrap .copy-btn {
+            position: absolute;
+            top: 8px; right: 8px;
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            opacity: 0;
+            transition: all .15s;
+            z-index: 2;
+        }
+        .code-wrap:hover .copy-btn { opacity: 1; }
+        .code-wrap .copy-btn:hover { color: var(--text); background: var(--border); }
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            overflow-x: auto;
+            font-family: 'Fira Code','Monaco','Consolas',monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .code-block pre { margin: 0; white-space: pre; }
+        .code-block .cm { color: #6b7280; }
+        .code-block .st { color: #4ade80; }
+        .code-block .kw { color: #f472b6; }
+        .code-block .nu { color: #fb923c; }
+        .code-block .fn { color: #60a5fa; }
+        .code-block .vr { color: #a5b4fc; }
+
+        /* ── Inline Code ── */
+        code:not(pre code) {
+            background: var(--bg-card2);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: 'Consolas','Monaco',monospace;
+            color: #a5b4fc;
+        }
+
+        /* ── Tip / Warning ── */
+        .tip {
+            background: var(--primary-light);
+            border-left: 3px solid var(--primary);
+            padding: 12px 16px;
+            margin: 12px 0;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .warning {
+            background: var(--orange-light);
+            border-left: 3px solid var(--orange);
+            padding: 12px 16px;
+            margin: 12px 0;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .danger {
+            background: var(--red-light);
+            border-left: 3px solid var(--red);
+            padding: 12px 16px;
+            margin: 12px 0;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* ── Table ── */
+        .tbl {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+        .tbl th, .tbl td {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        .tbl th {
+            background: var(--bg-card2);
+            font-weight: 600;
+            color: var(--text);
+        }
+        .tbl td { color: var(--text-secondary); }
+        .tbl code { font-size: 12px; }
+
+        /* ── Config Table ── */
+        .cfg-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+        .cfg-grid .cfg-label {
+            background: var(--bg-card2);
+            padding: 10px 14px;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+        .cfg-grid .cfg-value {
+            padding: 10px 14px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            font-family: 'Consolas','Monaco',monospace;
+            font-size: 13px;
+        }
+        .cfg-grid > :nth-last-child(-n+2) { border-bottom: none; }
+
+        /* ── FAQ ── */
+        .faq-item { margin-bottom: 16px; }
+        .faq-q {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .faq-a {
+            font-size: 14px;
+            color: var(--text-secondary);
+            padding-left: 16px;
+        }
+
+        /* ── API Ref ── */
+        .api-endpoint {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 14px 0 8px;
+        }
+        .api-method {
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Consolas','Monaco',monospace;
+        }
+        .api-method.get { background: var(--green-light); color: var(--green); }
+        .api-method.post { background: var(--primary-light); color: var(--primary); }
+        .api-path { font-family: 'Consolas','Monaco',monospace; font-size: 14px; color: var(--text); }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .quick-start { grid-template-columns: 1fr; }
+            .cfg-grid { grid-template-columns: 100px 1fr; }
+            .hero h1 { font-size: 22px; }
+            .card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-nav">
+    <div class="top-nav-inner">
+        <a href="#quick-start">快速开始</a>
+        <a href="#cherry-studio">Cherry Studio</a>
+        <a href="#cline">Cline</a>
+        <a href="#cursor">Cursor</a>
+        <a href="#continue">Continue</a>
+        <a href="#dify">Dify</a>
+        <a href="#openai-sdk">OpenAI SDK</a>
+        <a href="#langchain">LangChain</a>
+        <a href="#api-ref">API 参考</a>
+        <a href="#faq">常见问题</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="hero">
+        <h1>🔑 API 密钥使用说明</h1>
+        <p>Model Gateway 兼容 OpenAI API 接口，可在任何支持自定义 OpenAI 端点的应用中使用</p>
+    </div>
+
+    <!-- ═══ Quick Start ═══ -->
+    <div class="card" id="quick-start">
+        <h2><span class="icon" style="background:var(--green-light);color:var(--green)">⚡</span> 快速开始</h2>
+        <p>只需三个参数即可接入，所有兼容 OpenAI 接口的应用通用：</p>
+        <div class="quick-start">
+            <div class="qs-item">
+                <div class="qs-icon" style="background:var(--primary-light);color:var(--primary)">🌐</div>
+                <div class="qs-label">API 地址 (Base URL)</div>
+                <div class="qs-value" id="qs-base-url">http://你的网关地址/v1</div>
+            </div>
+            <div class="qs-item">
+                <div class="qs-icon" style="background:var(--green-light);color:var(--green)">🔑</div>
+                <div class="qs-label">API 密钥 (API Key)</div>
+                <div class="qs-value">sk-你的密钥</div>
+            </div>
+            <div class="qs-item">
+                <div class="qs-icon" style="background:var(--purple-light);color:var(--purple)">🤖</div>
+                <div class="qs-label">模型名称 (Model)</div>
+                <div class="qs-value">模型别名</div>
+            </div>
+        </div>
+        <div class="tip">
+            💡 <strong>模型名称</strong>必须与网关管理页面中配置的<strong>模型别名</strong>一致，可在管理页面的「模型管理」中查看。
+        </div>
+        <div class="warning">
+            ⚠️ API 地址末尾必须包含 <code>/v1</code>，例如 <code>http://192.168.1.100:8080/v1</code>
+        </div>
+    </div>
+
+    <!-- ═══ Cherry Studio ═══ -->
+    <div class="card" id="cherry-studio">
+        <h2><span class="icon" style="background:var(--red-light);color:var(--red)">🍒</span> Cherry Studio</h2>
+        <div class="steps">
+            <div class="step" data-step="1">打开 Cherry Studio，点击左下角 <strong>⚙ 设置</strong></div>
+            <div class="step" data-step="2">选择 <strong>模型服务</strong> → 点击 <strong>添加提供商</strong></div>
+            <div class="step" data-step="3">提供商类型选择 <strong>OpenAI</strong></div>
+            <div class="step" data-step="4">填写配置：</div>
+        </div>
+        <div class="cfg-grid">
+            <div class="cfg-label">API 地址</div>
+            <div class="cfg-value">http://你的网关地址/v1</div>
+            <div class="cfg-label">API 密钥</div>
+            <div class="cfg-value">sk-你的密钥</div>
+            <div class="cfg-label">提供商名称</div>
+            <div class="cfg-value">Model Gateway（自定义）</div>
+        </div>
+        <div class="step" data-step="5">保存后，在对话界面选择该提供商和模型即可使用</div>
+        <div class="tip">
+            💡 如果模型列表未自动加载，可手动添加模型，模型名称填写网关中配置的别名。
+        </div>
+    </div>
+
+    <!-- ═══ Cline ═══ -->
+    <div class="card" id="cline">
+        <h2><span class="icon" style="background:var(--primary-light);color:var(--primary)">🤖</span> Cline (VS Code 插件)</h2>
+        <div class="steps">
+            <div class="step" data-step="1">在 VS Code 中安装 <strong>Cline</strong> 插件</div>
+            <div class="step" data-step="2">点击 Cline 侧边栏图标，打开设置面板</div>
+            <div class="step" data-step="3">API Provider 选择 <strong>OpenAI Compatible</strong></div>
+            <div class="step" data-step="4">填写配置：</div>
+        </div>
+        <div class="cfg-grid">
+            <div class="cfg-label">Base URL</div>
+            <div class="cfg-value">http://你的网关地址/v1</div>
+            <div class="cfg-label">API Key</div>
+            <div class="cfg-value">sk-你的密钥</div>
+            <div class="cfg-label">Model ID</div>
+            <div class="cfg-value">模型别名（如 gpt-4）</div>
+        </div>
+        <div class="tip">
+            💡 Cline 支持在对话中切换模型，点击顶部的模型名称即可选择其他已配置的模型。
+        </div>
+    </div>
+
+    <!-- ═══ Cursor ═══ -->
+    <div class="card" id="cursor">
+        <h2><span class="icon" style="background:var(--purple-light);color:var(--purple)">🖱️</span> Cursor</h2>
+        <div class="steps">
+            <div class="step" data-step="1">打开 Cursor，点击 <strong>⚙ Settings</strong></div>
+            <div class="step" data-step="2">选择 <strong>Models</strong> 选项卡</div>
+            <div class="step" data-step="3">在 <strong>OpenAI API Key</strong> 区域点击 <strong>Add custom model</strong></div>
+            <div class="step" data-step="4">填写模型名称（与网关别名一致）</div>
+            <div class="step" data-step="5">展开 <strong>Override OpenAI API Base URL</strong>，填入：</div>
+        </div>
+        <div class="cfg-grid">
+            <div class="cfg-label">API Base URL</div>
+            <div class="cfg-value">http://你的网关地址/v1</div>
+            <div class="cfg-label">API Key</div>
+            <div class="cfg-value">sk-你的密钥</div>
+            <div class="cfg-label">Model Name</div>
+            <div class="cfg-value">模型别名</div>
+        </div>
+        <div class="tip">
+            💡 如果使用 Cursor 的 Agent 模式，确保选择的模型在网关中已启用。
+        </div>
+    </div>
+
+    <!-- ═══ Continue ═══ -->
+    <div class="card" id="continue">
+        <h2><span class="icon" style="background:var(--teal-light);color:var(--teal)">▶️</span> Continue (VS Code / JetBrains)</h2>
+        <div class="steps">
+            <div class="step" data-step="1">安装 Continue 插件</div>
+            <div class="step" data-step="2">打开 Continue 配置文件（<code>~/.continue/config.json</code>）</div>
+            <div class="step" data-step="3">在 <code>models</code> 数组中添加配置：</div>
+        </div>
+        <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <div class="code-block"><pre>{
+  <span class="st">"models"</span>: [
+    {
+      <span class="st">"title"</span>: <span class="st">"My Gateway"</span>,
+      <span class="st">"provider"</span>: <span class="st">"openai"</span>,
+      <span class="st">"model"</span>: <span class="st">"gpt-4"</span>,
+      <span class="st">"apiBase"</span>: <span class="st">"http://你的网关地址/v1"</span>,
+      <span class="st">"apiKey"</span>: <span class="st">"sk-你的密钥"</span>
+    }
+  ]
+}</pre></div>
+        </div>
+        <div class="tip">
+            💡 可添加多个模型条目，每个使用不同的 <code>model</code> 别名，即可在 Continue 中快速切换。
+        </div>
+    </div>
+
+    <!-- ═══ Dify ═══ -->
+    <div class="card" id="dify">
+        <h2><span class="icon" style="background:var(--orange-light);color:var(--orange)">🔧</span> Dify</h2>
+        <div class="steps">
+            <div class="step" data-step="1">登录 Dify 管理后台，进入 <strong>设置 → 模型供应商</strong></div>
+            <div class="step" data-step="2">点击 <strong>添加模型供应商</strong></div>
+            <div class="step" data-step="3">供应商类型选择 <strong>OpenAI API 兼容</strong></div>
+            <div class="step" data-step="4">填写配置：</div>
+        </div>
+        <div class="cfg-grid">
+            <div class="cfg-label">供应商名称</div>
+            <div class="cfg-value">Model Gateway</div>
+            <div class="cfg-label">API Base URL</div>
+            <div class="cfg-value">http://你的网关地址/v1</div>
+            <div class="cfg-label">API Key</div>
+            <div class="cfg-value">sk-你的密钥</div>
+        </div>
+        <div class="step" data-step="5">保存后，在应用编排页面选择该供应商下的模型即可</div>
+        <div class="tip">
+            💡 Dify 会自动拉取 <code>/v1/models</code> 接口获取可用模型列表。
+        </div>
+    </div>
+
+    <!-- ═══ OpenAI SDK ═══ -->
+    <div class="card" id="openai-sdk">
+        <h2><span class="icon" style="background:var(--green-light);color:var(--green)">📦</span> OpenAI SDK</h2>
+
+        <h3>Python</h3>
+        <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <div class="code-block"><pre><span class="cm"># pip install openai</span>
+
+<span class="kw">from</span> <span class="vr">openai</span> <span class="kw">import</span> <span class="fn">OpenAI</span>
+
+<span class="vr">client</span> = <span class="fn">OpenAI</span>(
+    <span class="vr">api_key</span>=<span class="st">"sk-你的密钥"</span>,
+    <span class="vr">base_url</span>=<span class="st">"http://你的网关地址/v1"</span>
+)
+
+<span class="cm"># 非流式请求</span>
+<span class="vr">response</span> = <span class="vr">client</span>.<span class="vr">chat</span>.<span class="vr">completions</span>.<span class="fn">create</span>(
+    <span class="vr">model</span>=<span class="st">"gpt-4"</span>,
+    <span class="vr">messages</span>=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"你好"</span>}]
+)
+<span class="fn">print</span>(<span class="vr">response</span>.<span class="vr">choices</span>[<span class="nu">0</span>].<span class="vr">message</span>.<span class="vr">content</span>)
+
+<span class="cm"># 流式请求</span>
+<span class="vr">stream</span> = <span class="vr">client</span>.<span class="vr">chat</span>.<span class="vr">completions</span>.<span class="fn">create</span>(
+    <span class="vr">model</span>=<span class="st">"gpt-4"</span>,
+    <span class="vr">messages</span>=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"写一首诗"</span>}],
+    <span class="vr">stream</span>=<span class="kw">True</span>
+)
+<span class="kw">for</span> <span class="vr">chunk</span> <span class="kw">in</span> <span class="vr">stream</span>:
+    <span class="kw">if</span> <span class="vr">chunk</span>.<span class="vr">choices</span>[<span class="nu">0</span>].<span class="vr">delta</span>.<span class="vr">content</span>:
+        <span class="fn">print</span>(<span class="vr">chunk</span>.<span class="vr">choices</span>[<span class="nu">0</span>].<span class="vr">delta</span>.<span class="vr">content</span>, <span class="vr">end</span>=<span class="st">""</span>)</pre></div>
+        </div>
+
+        <h3>Node.js</h3>
+        <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <div class="code-block"><pre><span class="cm">// npm install openai</span>
+
+<span class="kw">import</span> <span class="fn">OpenAI</span> <span class="kw">from</span> <span class="st">'openai'</span>;
+
+<span class="kw">const</span> <span class="vr">client</span> = <span class="kw">new</span> <span class="fn">OpenAI</span>({
+    <span class="vr">apiKey</span>: <span class="st">'sk-你的密钥'</span>,
+    <span class="vr">baseURL</span>: <span class="st">'http://你的网关地址/v1'</span>
+});
+
+<span class="cm">// 非流式请求</span>
+<span class="kw">const</span> <span class="vr">response</span> = <span class="kw">await</span> <span class="vr">client</span>.<span class="vr">chat</span>.<span class="vr">completions</span>.<span class="fn">create</span>({
+    <span class="vr">model</span>: <span class="st">'gpt-4'</span>,
+    <span class="vr">messages</span>: [{ <span class="vr">role</span>: <span class="st">'user'</span>, <span class="vr">content</span>: <span class="st">'你好'</span> }]
+});
+<span class="vr">console</span>.<span class="fn">log</span>(<span class="vr">response</span>.<span class="vr">choices</span>[<span class="nu">0</span>].<span class="vr">message</span>.<span class="vr">content</span>);
+
+<span class="cm">// 流式请求</span>
+<span class="kw">const</span> <span class="vr">stream</span> = <span class="kw">await</span> <span class="vr">client</span>.<span class="vr">chat</span>.<span class="vr">completions</span>.<span class="fn">create</span>({
+    <span class="vr">model</span>: <span class="st">'gpt-4'</span>,
+    <span class="vr">messages</span>: [{ <span class="vr">role</span>: <span class="st">'user'</span>, <span class="vr">content</span>: <span class="st">'写一首诗'</span> }],
+    <span class="vr">stream</span>: <span class="kw">true</span>
+});
+<span class="kw">for</span> <span class="kw">await</span> (<span class="kw">const</span> <span class="vr">chunk</span> <span class="kw">of</span> <span class="vr">stream</span>) {
+    <span class="vr">process</span>.<span class="vr">stdout</span>.<span class="fn">write</span>(<span class="vr">chunk</span>.<span class="vr">choices</span>[<span class="nu">0</span>]?.<span class="vr">delta</span>?.<span class="vr">content</span> || <span class="st">''</span>);
+}</pre></div>
+        </div>
+
+        <h3>curl</h3>
+        <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <div class="code-block"><pre><span class="cm"># 非流式</span>
+<span class="fn">curl</span> -X POST <span class="st">"http://你的网关地址/v1/chat/completions"</span> \
+  -H <span class="st">"Content-Type: application/json"</span> \
+  -H <span class="st">"Authorization: Bearer sk-你的密钥"</span> \
+  -d <span class="st">'{
+    "model": "gpt-4",
+    "messages": [{"role":"user","content":"你好"}]
+  }'</span>
+
+<span class="cm"># 流式</span>
+<span class="fn">curl</span> -N -X POST <span class="st">"http://你的网关地址/v1/chat/completions"</span> \
+  -H <span class="st">"Content-Type: application/json"</span> \
+  -H <span class="st">"Authorization: Bearer sk-你的密钥"</span> \
+  -d <span class="st">'{
+    "model": "gpt-4",
+    "messages": [{"role":"user","content":"写一首诗"}],
+    "stream": true
+  }'</span></pre></div>
+        </div>
+    </div>
+
+    <!-- ═══ LangChain ═══ -->
+    <div class="card" id="langchain">
+        <h2><span class="icon" style="background:var(--teal-light);color:var(--teal)">🔗</span> LangChain</h2>
+
+        <h3>Python (LangChain)</h3>
+        <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <div class="code-block"><pre><span class="cm"># pip install langchain-openai</span>
+
+<span class="kw">from</span> <span class="vr">langchain_openai</span> <span class="kw">import</span> <span class="fn">ChatOpenAI</span>
+<span class="kw">from</span> <span class="vr">langchain_core.messages</span> <span class="kw">import</span> <span class="fn">HumanMessage</span>
+
+<span class="vr">llm</span> = <span class="fn">ChatOpenAI</span>(
+    <span class="vr">model_name</span>=<span class="st">"gpt-4"</span>,
+    <span class="vr">openai_api_key</span>=<span class="st">"sk-你的密钥"</span>,
+    <span class="vr">openai_api_base</span>=<span class="st">"http://你的网关地址/v1"</span>,
+    <span class="vr">temperature</span>=<span class="nu">0.7</span>
+)
+
+<span class="vr">result</span> = <span class="vr">llm</span>.<span class="fn">invoke</span>([<span class="fn">HumanMessage</span>(<span class="vr">content</span>=<span class="st">"你好"</span>)])
+<span class="fn">print</span>(<span class="vr">result</span>.<span class="vr">content</span>)</pre></div>
+        </div>
+
+        <h3>Python (LangChain + 流式)</h3>
+        <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <div class="code-block"><pre><span class="kw">for</span> <span class="vr">chunk</span> <span class="kw">in</span> <span class="vr">llm</span>.<span class="fn">stream</span>([<span class="fn">HumanMessage</span>(<span class="vr">content</span>=<span class="st">"写一首诗"</span>)]):
+    <span class="fn">print</span>(<span class="vr">chunk</span>.<span class="vr">content</span>, <span class="vr">end</span>=<span class="st">""</span>, <span class="vr">flush</span>=<span class="kw">True</span>)</pre></div>
+        </div>
+    </div>
+
+    <!-- ═══ API Reference ═══ -->
+    <div class="card" id="api-ref">
+        <h2><span class="icon" style="background:var(--orange-light);color:var(--orange)">📖</span> API 接口参考</h2>
+        <p>所有接口兼容 OpenAI API 规范，请求时需在 Header 中携带 <code>Authorization: Bearer sk-你的密钥</code></p>
+
+        <h3>聊天补全</h3>
+        <div class="api-endpoint">
+            <span class="api-method post">POST</span>
+            <span class="api-path">/v1/chat/completions</span>
+        </div>
+        <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <div class="code-block"><pre>{
+  <span class="st">"model"</span>: <span class="st">"gpt-4"</span>,              <span class="cm">// 必填，模型别名</span>
+  <span class="st">"messages"</span>: [                   <span class="cm">// 必填，消息列表</span>
+    {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"你是一个助手"</span>},
+    {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"你好"</span>}
+  ],
+  <span class="st">"stream"</span>: <span class="kw">false</span>,               <span class="cm">// 可选，是否流式输出</span>
+  <span class="st">"temperature"</span>: <span class="nu">0.7</span>,           <span class="cm">// 可选，0-2</span>
+  <span class="st">"max_tokens"</span>: <span class="nu">4096</span>            <span class="cm">// 可选，最大生成 token 数</span>
+}</pre></div>
+        </div>
+
+        <h3>模型列表</h3>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/v1/models</span>
+        </div>
+        <p>返回当前密钥可用的模型列表。</p>
+
+        <h3>通用参数说明</h3>
+        <table class="tbl">
+            <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+            <tr><td><code>model</code></td><td>string</td><td>是</td><td>模型别名，与网关配置一致</td></tr>
+            <tr><td><code>messages</code></td><td>array</td><td>是</td><td>消息数组，每项含 role 和 content</td></tr>
+            <tr><td><code>stream</code></td><td>boolean</td><td>否</td><td>是否流式输出，默认 false</td></tr>
+            <tr><td><code>temperature</code></td><td>number</td><td>否</td><td>生成温度，0-2，默认 1</td></tr>
+            <tr><td><code>max_tokens</code></td><td>integer</td><td>否</td><td>最大生成 token 数</td></tr>
+            <tr><td><code>top_p</code></td><td>number</td><td>否</td><td>核采样参数，0-1</td></tr>
+        </table>
+    </div>
+
+    <!-- ═══ FAQ ═══ -->
+    <div class="card" id="faq">
+        <h2><span class="icon" style="background:var(--primary-light);color:var(--primary)">❓</span> 常见问题</h2>
+
+        <div class="faq-item">
+            <div class="faq-q">Q: 提示「认证错误」或「Invalid API Key」？</div>
+            <div class="faq-a">请检查 API Key 是否正确，确保以 <code>sk-</code> 开头且完整复制，没有多余空格。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q: 提示「模型不存在」？</div>
+            <div class="faq-a">请确认请求中的 <code>model</code> 参数与网关管理页面中的<strong>模型别名</strong>完全一致，注意大小写。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q: 请求超时或连接失败？</div>
+            <div class="faq-a">
+                <ul>
+                    <li>检查网关服务是否正常运行</li>
+                    <li>确认 API 地址和端口是否正确</li>
+                    <li>如果是远程访问，检查防火墙是否放行端口</li>
+                    <li>可在浏览器中直接访问网关地址测试连通性</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q: HTTPS 环境下无法连接？</div>
+            <div class="faq-a">浏览器在 HTTPS 页面中默认不允许请求 HTTP 接口（混合内容限制）。建议为网关配置 HTTPS，或通过 Nginx 反向代理并提供 SSL 证书。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q: 如何查看 API 调用统计？</div>
+            <div class="faq-a">登录网关管理页面，在「API 密钥」列表中可查看每个密钥的调用次数、Token 用量和费用统计。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q: 支持哪些 OpenAI 接口？</div>
+            <div class="faq-a">目前支持 <code>/v1/chat/completions</code>（聊天补全）和 <code>/v1/models</code>（模型列表），兼容流式和非流式两种模式。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q: 密钥的限流和配额如何设置？</div>
+            <div class="faq-a">在管理页面的「API 密钥」编辑中，可设置并发数、每日限额、每月限额、有效期和允许使用的模型范围。</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Model Gateway — API 密钥使用说明</p>
+    </div>
+</div>
+
+<script>
+function copyCode(btn) {
+    const block = btn.parentElement.querySelector('pre');
+    const text = block.innerText;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = '已复制';
+            setTimeout(() => btn.textContent = '复制', 1500);
+        }).catch(() => fallbackCopy(text, btn));
+    } else {
+        fallbackCopy(text, btn);
+    }
+}
+function fallbackCopy(text, btn) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '已复制';
+    setTimeout(() => btn.textContent = '复制', 1500);
+}
+
+const navLinks = document.querySelectorAll('.top-nav a');
+const sections = [];
+navLinks.forEach(a => {
+    const id = a.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ id, el, link: a });
+});
+function onScroll() {
+    const y = window.scrollY + 80;
+    let current = sections[0];
+    sections.forEach(s => { if (s.el.offsetTop <= y) current = s; });
+    navLinks.forEach(a => a.classList.remove('active'));
+    if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+</script>
+</body>
+</html>

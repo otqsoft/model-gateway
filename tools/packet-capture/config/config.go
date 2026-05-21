@@ -31,20 +31,24 @@ func (g *GatewayConfig) GetReportInterval() int {
 	return g.ReportInterval
 }
 
+// MonitoredApp 被监控的AI应用配置
 type MonitoredApp struct {
-	Name           string   `yaml:"name" json:"name"`
-	ToolName       string   `yaml:"tool_name" json:"tool_name"`
-	ProviderName   string   `yaml:"provider_name" json:"provider_name"`
-	ProcessNames   []string `yaml:"process_names" json:"process_names"`
-	TokenRatio     float64  `yaml:"token_ratio" json:"token_ratio"`
-	NetworkRatio   float64  `yaml:"network_ratio" json:"network_ratio"`
+	Name         string   `yaml:"name" json:"name"`
+	ToolName     string   `yaml:"tool_name" json:"tool_name"`
+	ProviderName string   `yaml:"provider_name" json:"provider_name"`
+	ProcessNames []string `yaml:"process_names" json:"process_names"`
+	// NetworkRatio: 该进程总IO流量中属于AI API调用的估算比例（0.0~1.0）
+	// 用于从进程级IO计数中过滤出AI相关流量。
+	// 精确token计数由协议解析器独立处理，与此比例无关。
+	NetworkRatio float64 `yaml:"network_ratio" json:"network_ratio"`
+	// TokenRatio: 已废弃，保留字段为向后兼容（解析时不报错）
+	// Token估算现在由 AdaptiveTokenEstimator 动态调整
+	TokenRatio float64 `yaml:"token_ratio,omitempty" json:"token_ratio,omitempty"`
 }
 
+// GetTokenRatio 已废弃的兼容方法，返回固定默认值
 func (a *MonitoredApp) GetTokenRatio() float64 {
-	if a.TokenRatio <= 0 {
-		return 4.0
-	}
-	return a.TokenRatio
+	return 4.0
 }
 
 func (a *MonitoredApp) GetNetworkRatio() float64 {

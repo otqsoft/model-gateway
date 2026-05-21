@@ -297,6 +297,9 @@ async function loadReportHistory() {
 
 function renderReportChart(records) {
     const canvas = document.getElementById('report-chart');
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
     const ctx = canvas.getContext('2d');
 
     if (!records.length) {

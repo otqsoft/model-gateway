@@ -48,6 +48,10 @@ func (s *Server) setupRoutes() {
 		api.POST("/config", s.updateConfig)
 		api.POST("/test/traffic", s.addTestTraffic)
 		api.GET("/report-history", s.getReportHistory)
+		// 精确Token上报接口：由外部代理/插件在获取到真实token数时调用
+		api.POST("/usage/exact", s.recordExactUsage)
+		// 协议分析接口：直接上传HTTP响应体进行token解析
+		api.POST("/usage/parse", s.parseHTTPPayload)
 	}
 }
 
@@ -145,5 +149,92 @@ func (s *Server) getReportHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    history,
+	})
+}
+
+// recordExactUsage 接收来自外部（浏览器插件、代理脚本等）上报的精确token数
+// 这是精度最高的数据来源，会同时校准自适应估算器
+func (s *Server) recordExactUsage(c *gin.Context) {
+	var req struct {
+		AppName          string  `json:"app_name" binding:"required"`
+		PromptTokens     uint64  `json:"prompt_tokens"`
+		CompletionTokens uint64  `json:"completion_tokens"`
+		TotalTokens      uint64  `json:"total_tokens"`
+		ModelName        string  `json:"model_name"`
+		SentBytes        uint64  `json:"sent_bytes"`
+		ReceivedBytes    uint64  `json:"received_bytes"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	usage := &monitor.TokenUsage{
+		PromptTokens:     req.PromptTokens,
+		CompletionTokens: req.CompletionTokens,
+		TotalTokens:      req.TotalTokens,
+		ModelName:        req.ModelName,
+	}
+	if usage.TotalTokens == 0 {
+		usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
+	}
+
+	s.monitor.RecordExactTokenUsage(req.AppName, req.SentBytes, req.ReceivedBytes, usage)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": fmt.Sprintf("Recorded exact usage for %s: prompt=%d, completion=%d",
+			req.AppName, req.PromptTokens, req.CompletionTokens),
+	})
+}
+
+// parseHTTPPayload 接收原始HTTP响应体，尝试解析其中的token用量
+// 适用于代理脚本转发的明文HTTP响应
+func (s *Server) parseHTTPPayload(c *gin.Context) {
+	var req struct {
+		AppName  string `json:"app_name" binding:"required"`
+		Payload  []byte `json:"payload"`   // base64编码的原始HTTP响应
+		RawJSON  string `json:"raw_json"`  // 或者直接传JSON字符串
+		SentBytes     uint64 `json:"sent_bytes"`
+		ReceivedBytes uint64 `json:"received_bytes"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	parser := monitor.NewProtocolParser()
+	var usage *monitor.TokenUsage
+
+	if len(req.Payload) > 0 {
+		usage = parser.TryParseHTTPResponse(req.Payload)
+		if usage == nil {
+			usage = parser.TryParseRawPayload(req.Payload)
+		}
+	} else if req.RawJSON != "" {
+		usage = parser.TryParseRawPayload([]byte(req.RawJSON))
+	}
+
+	if usage == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "No token usage found in payload",
+		})
+		return
+	}
+
+	s.monitor.RecordExactTokenUsage(req.AppName, req.SentBytes, req.ReceivedBytes, usage)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"usage": gin.H{
+			"prompt_tokens":     usage.PromptTokens,
+			"completion_tokens": usage.CompletionTokens,
+			"total_tokens":      usage.TotalTokens,
+			"model":             usage.ModelName,
+			"source":            usage.Source.String(),
+		},
 	})
 }

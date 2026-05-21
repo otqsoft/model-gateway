@@ -3,33 +3,31 @@ server:
     web_root: ./web
 gateway:
     url: http://localhost:8086/admin/external-usage/report
-    enabled: false
+    enabled: true
     report_interval: 10
 monitored_apps:
+    # ── 豆包（字节跳动）──────────────────────────────────────────────
     - name: doubao
       tool_name: doubao
       provider_name: doubao
       process_names:
         - doubao
         - DoubaoDesktop
-      token_ratio: 4
-      network_ratio: 0.1
+      # network_ratio: 目标进程总IO中属于AI API流量的估算比例
+      # 豆包桌面端混合了大量非AI的图文媒体流量，API占比约10%
+      network_ratio: 0.10
+
+    # ── Trae（腾讯AI编程助手）────────────────────────────────────────
     - name: trae
       tool_name: trae
       provider_name: trae
       process_names:
         - trae
         - Trae
-      token_ratio: 4
-      network_ratio: 0.005
-    - name: cursor
-      tool_name: cursor
-      provider_name: cursor
-      process_names:
-        - cursor
-        - Cursor
-      token_ratio: 4
-      network_ratio: 0.005
+      # Trae几乎全部流量均为AI API调用，占比非常高
+      network_ratio: 0.80
+
+    # ── WorkBuddy（腾讯）────────────────────────────────────────────
     - name: WorkBuddy
       tool_name: WorkBuddy
       provider_name: Tencent
@@ -37,8 +35,18 @@ monitored_apps:
         - WorkBuddy
         - WorkBuddy.exe
         - workbuddy
-      token_ratio: 4
+      # WorkBuddy的AI API流量约占总流量的5%
       network_ratio: 0.05
+
+    # ── Cursor ───────────────────────────────────────────────────────
+    # - name: cursor
+    #   tool_name: cursor
+    #   provider_name: cursor
+    #   process_names:
+    #     - cursor
+    #     - Cursor
+    #   network_ratio: 0.60
+
 log:
     level: info
     file: ./logs/app.log

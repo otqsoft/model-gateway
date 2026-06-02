@@ -301,6 +301,24 @@ body::before{
 .page.active{display:block}
 @keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
+/* ─── Vision Page ───────────────────────────────────────── */
+.vision-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.vision-left,.vision-right{background:var(--bg-glass);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.vision-upload-area{
+  border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;
+  text-align:center;cursor:pointer;transition:all .2s;min-height:200px;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+}
+.vision-upload-area:hover,.vision-upload-area.drag-over{border-color:var(--accent-blue);background:rgba(56,189,248,.04)}
+.vision-result{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;min-height:300px;max-height:500px;overflow-y:auto;
+  font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;
+}
+.vision-result .cursor-blink::after{content:'▌';animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+@media(max-width:900px){.vision-layout{grid-template-columns:1fr}}
+
 /* ─── Cards ──────────────────────────────────────────────── */
 .card{
   background:var(--bg-glass);
@@ -654,6 +672,10 @@ input:checked + .slider:before{
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v4H4z"/><path d="M4 12h10v4H4z"/><path d="M4 20h6v-2H4z"/><circle cx="18" cy="18" r="3"/><line x1="20.83" y1="20.83" x2="22" y2="22"/></svg>
       外部 Token
     </div>
+    <!-- <div class="nav-item" data-page="vision" onclick="nav(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><circle cx="12" cy="10" r="3"/></svg>
+      图像理解
+    </div> -->
   </div>
   <div class="sidebar-footer">
     <div class="nav-item" onclick="showSettings()">
@@ -815,7 +837,7 @@ input:checked + .slider:before{
         <table>
           <thead><tr>
             <th>ID</th><th>别名(对外)</th><th>上游模型</th><th>供应商</th>
-            <th>输入价格(元/1K)</th><th>输出价格(元/1K)</th><th>状态</th><th>操作</th>
+            <th>输入价格(元/1K)</th><th>输出价格(元/1K)</th><th>多模态</th><th>状态</th><th>操作</th>
           </tr></thead>
           <tbody id="models-tbody">
             <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
@@ -1027,6 +1049,75 @@ input:checked + .slider:before{
       </div>
     </div>
 
+    <!-- ══════════ PAGE: VISION ══════════ -->
+    <div class="page" id="page-vision">
+      <div class="section-hd">
+        <div class="section-title">图像理解</div>
+      </div>
+      <div class="vision-layout">
+        <div class="vision-left" id="vision-left">
+          <div class="vision-upload-area" id="vision-drop-zone">
+            <input type="file" id="vision-file-input" accept="image/*" style="display:none" onchange="visionFileSelected(this)">
+            <div id="vision-placeholder">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="opacity:.3;margin-bottom:12px"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><circle cx="12" cy="10" r="3"/></svg>
+              <div style="color:var(--text-muted);font-size:14px;margin-bottom:8px">拖拽图片到此处，或点击上传</div>
+              <div style="color:var(--text-muted);font-size:12px">支持 JPG / PNG / GIF / WebP，最大 20MB</div>
+            </div>
+            <img id="vision-preview" style="display:none;max-width:100%;max-height:360px;border-radius:8px;object-fit:contain">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+            <button class="btn btn-sm" onclick="document.getElementById('vision-file-input').click()">选择图片</button>
+            <button class="btn btn-sm" id="vision-clear-btn" style="display:none" onclick="visionClear()">清除</button>
+          </div>
+          <div style="margin-top:16px">
+            <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block">提示文本</label>
+            <textarea id="vision-prompt" class="form-input" rows="3" placeholder="请描述这张图片" style="width:100%;resize:vertical;font-size:13px">请描述这张图片</textarea>
+          </div>
+          <div style="margin-top:12px">
+            <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block">图片来源</label>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <label style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="radio" name="vision-source" value="upload" checked onchange="visionToggleSource()"> 上传图片
+              </label>
+              <label style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="radio" name="vision-source" value="url" onchange="visionToggleSource()"> 图片URL
+              </label>
+            </div>
+            <div id="vision-url-group" style="display:none">
+              <input type="text" id="vision-image-url" class="form-input" placeholder="https://example.com/image.jpg" style="width:100%;font-size:13px">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:1;min-width:140px">
+              <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block">API 密钥</label>
+              <input type="password" id="vision-apikey" class="form-input" placeholder="sk-..." style="width:100%;font-size:13px" oninput="localStorage.setItem('mg_vision_key',this.value)">
+            </div>
+            <div style="flex:1;min-width:140px">
+              <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block">模型</label>
+              <select id="vision-model" class="form-select" style="width:100%;font-size:13px"></select>
+            </div>
+            <div style="width:80px">
+              <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block">温度</label>
+              <input type="number" id="vision-temp" class="form-input" value="0.7" min="0" max="2" step="0.1" style="width:100%;font-size:13px">
+            </div>
+            <label style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="vision-stream" checked> 流式
+            </label>
+            <button class="btn btn-primary" id="vision-send-btn" onclick="visionSend()">发送</button>
+          </div>
+        </div>
+        <div class="vision-right">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+            <span>识别结果</span>
+            <button class="btn btn-sm" id="vision-copy-btn" style="display:none" onclick="visionCopyResult()">复制</button>
+          </div>
+          <div class="vision-result" id="vision-result">
+            <div style="color:var(--text-muted);font-size:14px;text-align:center;padding:60px 20px">上传图片并点击发送，结果将在此显示</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -1130,6 +1221,11 @@ input:checked + .slider:before{
       <div class="form-group">
         <label class="form-label">最大 Token 限制</label>
         <input class="form-input" type="number" id="md-max-tokens" value="8192">
+      </div>
+      <div class="form-group" style="display:flex;gap:24px;align-items:center;padding:8px 0">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary)">
+          <input type="checkbox" id="md-multimodal"> 支持多模态（图像理解）
+        </label>
       </div>
       <div class="form-group" id="md-coze-bot-group" style="display:none">
         <label class="form-label">Coze Bot ID <span style="color:var(--text-muted);font-weight:400;font-size:12px">(仅 Coze 供应商)</span></label>
@@ -1469,7 +1565,7 @@ function toast(msg,type='ok'){
 const PAGE_TITLES={
   dashboard:'仪表盘',monitor:'系统监控',providers:'供应商配置',
   models:'模型管理',agents:'智能体管理',keys:'API 密钥',logs:'请求日志',billing:'费用统计',
-  external:'外部 Token 使用'
+  external:'外部 Token 使用',vision:'图像理解'
 };
 function nav(el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1491,6 +1587,7 @@ function loadPage(p){
   else if(p==='logs') loadLogs(1);
   else if(p==='billing') loadBilling();
   else if(p==='external') loadExternal();
+  else if(p==='vision') loadVisionModels();
 }
 function refreshCurrent(){loadPage(currentPage);}
 
@@ -1891,6 +1988,7 @@ async function loadModels(){
         <td><code style="color:var(--accent-teal)">${m.provider_name}</code></td>
         <td style="color:var(--accent-green)">¥${m.input_price}</td>
         <td style="color:var(--accent-orange)">¥${m.output_price}</td>
+        <td>${m.supports_multimodal?'<span style="color:var(--accent-blue);font-size:12px">✓ 支持</span>':'<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
         <td>
           <label class="switch" title="${_BROWSER_MODE?'只读浏览模式':(m.is_enabled?'点击禁用':'点击启用')}">
             <input type="checkbox" ${m.is_enabled?'checked':''} ${_BROWSER_MODE?'disabled':''} onchange="toggleModel(${m.id},this.checked)">
@@ -1901,7 +1999,7 @@ async function loadModels(){
           ${_BROWSER_MODE?`<button class="btn btn-sm" onclick='viewModel(${JSON.stringify(m)})'>查看</button>`:`<button class="btn btn-sm" onclick='editModel(${JSON.stringify(m)})'>编辑</button>
           <button class="btn btn-sm btn-danger" onclick='deleteModel(${m.id},"${m.model_alias}")'>删除</button>`}
         </td>
-      </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
+      </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">暂无数据</td></tr>';
   }catch(e){toast('加载模型失败: '+e.message,'err')}
 }
 
@@ -1914,6 +2012,7 @@ async function openModelModal(md=null, readonly=false){
   document.getElementById('md-input-price').value=md?md.input_price:0.001;
   document.getElementById('md-output-price').value=md?md.output_price:0.002;
   document.getElementById('md-max-tokens').value=md?md.max_tokens:8192;
+  document.getElementById('md-multimodal').checked=md?!!md.supports_multimodal:false;
 
   // extra_headers.bot_id 支持 Coze
   let botId = '';
@@ -1983,6 +2082,7 @@ async function submitModel(){
     input_price:+document.getElementById('md-input-price').value,
     output_price:+document.getElementById('md-output-price').value,
     max_tokens:+document.getElementById('md-max-tokens').value,
+    supports_multimodal:document.getElementById('md-multimodal').checked,
     is_enabled:true
   };
   // Coze bot_id 通过 extra_headers 传递
@@ -2725,6 +2825,194 @@ function upstreamColor(code){
   if(code>=500) return 'var(--accent-red)';
   if(code>=400) return 'var(--accent-orange)';
   return 'var(--accent-green)';
+}
+
+// ─── Vision ────────────────────────────────────────────────
+let visionFile = null;
+let visionSending = false;
+
+function loadVisionModels() {
+  const sel = document.getElementById('vision-model');
+  const keyInput = document.getElementById('vision-apikey');
+  const savedKey = localStorage.getItem('mg_vision_key')||'';
+  if(savedKey && keyInput) keyInput.value = savedKey;
+  if (sel.options.length > 0) return;
+  fetch('/admin/models?page=1&page_size=200', {headers:{'X-Admin-Token':ADMIN_TOKEN}})
+    .then(r=>r.json()).then(data=>{
+      const items = (data.items || []).filter(m=>m.supports_multimodal);
+      sel.innerHTML = '';
+      if(items.length===0){
+        sel.innerHTML='<option value="">暂无多模态模型</option>';
+        return;
+      }
+      items.forEach(m=>{
+        const opt = document.createElement('option');
+        opt.value = m.model_alias;
+        opt.textContent = m.model_alias + ' (' + m.upstream_model + ')';
+        sel.appendChild(opt);
+      });
+    }).catch(()=>{});
+}
+
+(function initVisionDrop(){
+  document.addEventListener('DOMContentLoaded',()=>{
+    const zone = document.getElementById('vision-drop-zone');
+    if(!zone) return;
+    zone.addEventListener('click', e=>{
+      if(e.target.tagName==='IMG') return;
+      document.getElementById('vision-file-input').click();
+    });
+    zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('drag-over');});
+    zone.addEventListener('dragleave', ()=>zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e=>{
+      e.preventDefault();zone.classList.remove('drag-over');
+      const f=e.dataTransfer.files[0];
+      if(f&&f.type.startsWith('image/')) setVisionFile(f);
+    });
+  });
+})();
+
+function visionFileSelected(input){
+  const f=input.files[0];
+  if(f) setVisionFile(f);
+}
+
+function setVisionFile(file){
+  visionFile=file;
+  const preview=document.getElementById('vision-preview');
+  const placeholder=document.getElementById('vision-placeholder');
+  const clearBtn=document.getElementById('vision-clear-btn');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    preview.src=e.target.result;
+    preview.style.display='block';
+    placeholder.style.display='none';
+    clearBtn.style.display='inline-flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function visionClear(){
+  visionFile=null;
+  document.getElementById('vision-preview').style.display='none';
+  document.getElementById('vision-placeholder').style.display='flex';
+  document.getElementById('vision-clear-btn').style.display='none';
+  document.getElementById('vision-file-input').value='';
+}
+
+function visionToggleSource(){
+  const upload=document.querySelector('input[name="vision-source"][value="upload"]').checked;
+  document.getElementById('vision-drop-zone').style.display=upload?'flex':'none';
+  document.getElementById('vision-clear-btn').style.display=(upload&&visionFile)?'inline-flex':'none';
+  document.querySelector('#vision-left .btn-sm[onclick*="vision-file-input"]').parentElement.style.display=upload?'flex':'none';
+  document.getElementById('vision-url-group').style.display=upload?'none':'block';
+}
+
+async function visionSend(){
+  if(visionSending) return;
+  const model=document.getElementById('vision-model').value;
+  if(!model){toast('请选择模型','warn');return;}
+  const prompt=document.getElementById('vision-prompt').value.trim()||'请描述这张图片';
+  const stream=document.getElementById('vision-stream').checked;
+  const temperature=parseFloat(document.getElementById('vision-temp').value)||0.7;
+  const useUpload=document.querySelector('input[name="vision-source"][value="upload"]').checked;
+
+  if(useUpload && !visionFile){toast('请先上传图片','warn');return;}
+  if(!useUpload){
+    const url=document.getElementById('vision-image-url').value.trim();
+    if(!url){toast('请输入图片URL','warn');return;}
+  }
+
+  const resultEl=document.getElementById('vision-result');
+  const copyBtn=document.getElementById('vision-copy-btn');
+  const sendBtn=document.getElementById('vision-send-btn');
+  resultEl.innerHTML='<span class="cursor-blink"></span>';
+  copyBtn.style.display='none';
+  sendBtn.disabled=true;
+  sendBtn.textContent='识别中...';
+  visionSending=true;
+
+  const apiKey=document.getElementById('vision-apikey').value.trim();
+  const headers={};
+  if(apiKey) headers['Authorization']='Bearer '+apiKey;
+  headers['Content-Type']='application/json';
+
+  try{
+    let resp;
+    if(useUpload){
+      headers['Content-Type']=undefined;delete headers['Content-Type'];
+      const fd=new FormData();
+      fd.append('image',visionFile);
+      fd.append('prompt',prompt);
+      fd.append('model',model);
+      fd.append('stream',stream?'true':'false');
+      fd.append('temperature',temperature.toString());
+      resp=await fetch('/v1/vision',{method:'POST',headers,body:fd});
+    }else{
+      const imageUrl=document.getElementById('vision-image-url').value.trim();
+      resp=await fetch('/v1/vision/url',{method:'POST',headers,body:JSON.stringify({
+        model,image_url:imageUrl,prompt,stream,temperature
+      })});
+    }
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({error:{message:'请求失败 '+resp.status}}));
+      resultEl.textContent=err.error?.message||JSON.stringify(err);
+      return;
+    }
+    if(stream){
+      const reader=resp.body.getReader();
+      const decoder=new TextDecoder();
+      let fullText='';
+      let buffer='';
+      while(true){
+        const {done,value}=await reader.read();
+        if(done) break;
+        buffer+=decoder.decode(value,{stream:true});
+        const lines=buffer.split('\n');
+        buffer=lines.pop()||'';
+        for(const line of lines){
+          if(!line.startsWith('data:')) continue;
+          const data=line.slice(5).trim();
+          if(data==='[DONE]') continue;
+          try{
+            const chunk=JSON.parse(data);
+            if(chunk.error){fullText+='[错误] '+chunk.error.message;resultEl.textContent=fullText;continue;}
+            const delta=chunk.choices?.[0]?.delta?.content;
+            if(delta){fullText+=delta;resultEl.textContent=fullText;}
+          }catch(e){}
+        }
+      }
+      if(fullText){copyBtn.style.display='inline-flex';}
+      else{resultEl.innerHTML='<span style="color:var(--text-muted)">模型未返回内容</span>';}
+    }else{
+      const data=await resp.json();
+      if(data.error){resultEl.textContent='[错误] '+data.error.message;return;}
+      const content=data.choices?.[0]?.message?.content||'';
+      if(content){resultEl.textContent=content;copyBtn.style.display='inline-flex';}
+      else{resultEl.innerHTML='<span style="color:var(--text-muted)">模型未返回内容</span>';}
+    }
+  }catch(e){
+    resultEl.textContent='请求异常: '+e.message;
+  }finally{
+    sendBtn.disabled=false;
+    sendBtn.textContent='发送';
+    visionSending=false;
+    const cursor=resultEl.querySelector('.cursor-blink');
+    if(cursor) cursor.remove();
+  }
+}
+
+function visionCopyResult(){
+  const text=document.getElementById('vision-result').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('已复制'));
+  }else{
+    const ta=document.createElement('textarea');ta.value=text;
+    ta.style.cssText='position:fixed;left:-9999px';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    toast('已复制');
+  }
 }
 
 // ─── Init ──────────────────────────────────────────────────

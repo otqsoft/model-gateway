@@ -13,7 +13,7 @@ import uuid
 
 class ChatMessage(BaseModel):
     role: Literal["system", "user", "assistant", "function", "tool"]
-    content: Optional[str] = None
+    content: Optional[Union[str, list]] = None
     name: Optional[str] = None
     function_call: Optional[dict] = None
     tool_calls: Optional[list[dict]] = None

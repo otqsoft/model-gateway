@@ -29,14 +29,15 @@ async def create_model_mapping(data: ModelMappingCreate) -> dict:
     sql = """
     INSERT INTO model_mapping
         (model_alias, provider_name, upstream_model, input_price, output_price,
-         max_tokens, supports_stream, is_enabled, description, extra_headers)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+         max_tokens, supports_stream, supports_multimodal, is_enabled, description, extra_headers)
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """
     async with DBHelper() as db:
         row_id = await db.execute(sql, (
             data.model_alias, data.provider_name, data.upstream_model,
             data.input_price, data.output_price, data.max_tokens,
-            int(data.supports_stream), int(data.is_enabled), data.description, extra_h
+            int(data.supports_stream), int(data.supports_multimodal),
+            int(data.is_enabled), data.description, extra_h
         ))
         return await db.fetchone("SELECT * FROM model_mapping WHERE id=%s", (row_id,))
 
@@ -49,14 +50,15 @@ async def update_model_mapping(model_id: int, data: ModelMappingCreate) -> Optio
     UPDATE model_mapping SET
         model_alias=%s, provider_name=%s, upstream_model=%s,
         input_price=%s, output_price=%s, max_tokens=%s,
-        supports_stream=%s, is_enabled=%s, description=%s, extra_headers=%s
+        supports_stream=%s, supports_multimodal=%s, is_enabled=%s, description=%s, extra_headers=%s
     WHERE id=%s
     """
     async with DBHelper() as db:
         await db.execute(sql, (
             data.model_alias, data.provider_name, data.upstream_model,
             data.input_price, data.output_price, data.max_tokens,
-            int(data.supports_stream), int(data.is_enabled), data.description, extra_h, model_id
+            int(data.supports_stream), int(data.supports_multimodal),
+            int(data.is_enabled), data.description, extra_h, model_id
         ))
         return await db.fetchone("SELECT * FROM model_mapping WHERE id=%s", (model_id,))
 

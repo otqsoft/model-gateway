@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `model_mapping` (
   `output_price`      DECIMAL(12,6)NOT NULL DEFAULT 0.000000 COMMENT '输出单价（元/1K tokens）',
   `max_tokens`        INT          NOT NULL DEFAULT 4096  COMMENT '最大 token 数',
   `supports_stream`   TINYINT(1)   NOT NULL DEFAULT 1    COMMENT '是否支持流式',
+  `supports_multimodal` TINYINT(1) NOT NULL DEFAULT 0    COMMENT '是否支持多模态（图像理解）',
   `is_enabled`        TINYINT(1)   NOT NULL DEFAULT 1    COMMENT '是否启用',
   `description`       VARCHAR(255)          DEFAULT NULL COMMENT '模型描述',
   `extra_headers`    JSON                  DEFAULT NULL COMMENT '厂商额外参数，如 Coze 的 bot_id',
@@ -210,3 +211,9 @@ INSERT INTO `model_mapping` (`model_alias`, `provider_name`, `upstream_model`, `
 ('qwen-max',                  'modelscope',  'qwen-max',                         0.040000, 0.120000, 32768, 1),
 ('qwen-plus',                 'modelscope',  'qwen-plus',                        0.004000, 0.012000, 131072,1),
 ('qwen-turbo',                'modelscope',  'qwen-turbo',                       0.002000, 0.006000, 131072,1);
+
+-- ============================================================
+-- 增量变更：为已有数据库添加 supports_multimodal 字段
+-- ============================================================
+ALTER TABLE `model_mapping`
+  ADD COLUMN IF NOT EXISTS `supports_multimodal` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否支持多模态（图像理解）' AFTER `supports_stream`;

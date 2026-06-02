@@ -71,9 +71,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 # OpenAI 兼容接口
 from api.v1.chat import router as chat_router
 from api.v1.models_list import router as models_router
+from api.v1.vision import router as vision_router
 
 app.include_router(chat_router)
 app.include_router(models_router)
+app.include_router(vision_router)
 
 # 管理端接口
 from api.admin.overview import router as overview_router

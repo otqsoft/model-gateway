@@ -89,7 +89,7 @@ class BaseProvider(ABC):
         timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
         try:
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                logger.info(f"请求头: {url} {headers} {body}")
+                logger.debug(f"请求头: {url} {headers} {body}")
                 async with session.post(url, json=body, headers=headers) as resp:
                     status = resp.status
                     data = await resp.json(content_type=None)

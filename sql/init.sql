@@ -158,7 +158,8 @@ INSERT INTO `model_providers` (`name`, `display_name`, `base_url`, `api_key`, `m
 ('glm',          'GLM 智谱',        'https://open.bigmodel.cn/api/paas/v4',                   '', 30, 120),
 ('xiaomi',       '小米 AI',         'https://ai.xiaomi.com/v1',                               '', 20, 120),
 ('siliconflow',  '硅基流动',        'https://api.siliconflow.cn/v1',                          '', 50, 120),
-('modelscope',   '魔塔社区',        'https://dashscope.aliyuncs.com/compatible-mode/v1',      '', 30, 120);
+('modelscope',   '魔塔社区',        'https://dashscope.aliyuncs.com/compatible-mode/v1',      '', 30, 120),
+('openrouter',   'OpenRouter',      'https://openrouter.ai/api/v1',                           '', 50, 120);
 
 -- ============================================================
 -- 6. 智能体配置表
@@ -210,7 +211,20 @@ INSERT INTO `model_mapping` (`model_alias`, `provider_name`, `upstream_model`, `
 ('deepseek-ai/DeepSeek-V2',   'siliconflow', 'deepseek-ai/DeepSeek-V2',          0.001400, 0.002800, 32768, 1),
 ('qwen-max',                  'modelscope',  'qwen-max',                         0.040000, 0.120000, 32768, 1),
 ('qwen-plus',                 'modelscope',  'qwen-plus',                        0.004000, 0.012000, 131072,1),
-('qwen-turbo',                'modelscope',  'qwen-turbo',                       0.002000, 0.006000, 131072,1);
+('qwen-turbo',                'modelscope',  'qwen-turbo',                       0.002000, 0.006000, 131072,1),
+-- OpenRouter 模型映射
+('openrouter/gpt-4o',               'openrouter', 'openai/gpt-4o',                0.018000, 0.054000, 128000, 1),
+('openrouter/gpt-4o-mini',          'openrouter', 'openai/gpt-4o-mini',           0.001080, 0.004320, 128000, 1),
+('openrouter/claude-3.5-sonnet',    'openrouter', 'anthropic/claude-3.5-sonnet',  0.021600, 0.108000, 200000, 1),
+('openrouter/claude-3-haiku',       'openrouter', 'anthropic/claude-3-haiku',     0.001800, 0.002160, 200000, 1),
+('openrouter/gemini-pro-1.5',       'openrouter', 'google/gemini-pro-1.5',        0.025200, 0.075600, 1000000,1),
+('openrouter/gemini-flash-1.5',     'openrouter', 'google/gemini-flash-1.5',      0.005040, 0.015120, 1000000,1),
+('openrouter/llama-3.1-8b',         'openrouter', 'meta-llama/llama-3.1-8b-instruct', 0.000000, 0.000000, 131072, 1),
+('openrouter/llama-3.1-70b',        'openrouter', 'meta-llama/llama-3.1-70b-instruct',0.005760, 0.005760, 131072, 1),
+('openrouter/deepseek-r1',          'openrouter', 'deepseek/deepseek-r1',         0.003600, 0.010800, 65536, 1),
+('openrouter/deepseek-chat-v3',     'openrouter', 'deepseek/deepseek-chat-v3-0324',0.000720, 0.002880, 65536, 1),
+('openrouter/qwen-2.5-72b',         'openrouter', 'qwen/qwen-2.5-72b-instruct',   0.002520, 0.002880, 131072, 1),
+('openrouter/mistral-large',        'openrouter', 'mistralai/mistral-large',      0.021600, 0.064800, 131072, 1);
 
 -- ============================================================
 -- 增量变更：为已有数据库添加 supports_multimodal 字段

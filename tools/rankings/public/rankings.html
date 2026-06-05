@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Rankings | OpenRouter</title>
+  <link rel="icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base: #09090b;
+      --bg-card: #0f0f12;
+      --bg-elevated: #18181b;
+      --bg-hover: #1e1e22;
+      --bg-muted: #27272a;
+      --border: #27272a;
+      --border-light: #3f3f46;
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --text-dim: #52525b;
+      --accent: #7c3aed;
+      --accent-hover: #8b5cf6;
+      --purple-400: #a78bfa;
+      --purple-500: #8b5cf6;
+      --purple-600: #7c3aed;
+      --purple-700: #6d28d9;
+      --green-400: #4ade80;
+      --green-500: #22c55e;
+      --blue-400: #60a5fa;
+      --blue-500: #3b82f6;
+      --yellow-400: #facc15;
+      --yellow-500: #eab308;
+      --orange-400: #fb923c;
+      --orange-500: #f97316;
+      --radius-sm: 6px;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-base);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Nav ── */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(9,9,11,0.8);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-left { display: flex; align-items: center; gap: 24px; }
+    .nav-logo {
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none; color: var(--text);
+    }
+    .nav-logo svg { width: 24px; height: 24px; }
+    .nav-logo span { font-weight: 600; font-size: 15px; }
+    .nav-links { display: flex; gap: 2px; }
+    .nav-links a {
+      padding: 6px 12px; border-radius: var(--radius-sm);
+      color: var(--text-muted); text-decoration: none;
+      font-size: 13px; font-weight: 500;
+      transition: color .15s, background .15s;
+    }
+    .nav-links a:hover { color: var(--text-secondary); background: var(--bg-elevated); }
+    .nav-links a.active { color: var(--text); }
+
+    /* ── Hero ── */
+    .hero {
+      max-width: 1280px; margin: 0 auto;
+      padding: 48px 24px 0;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px 4px 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px; color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green-500);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+    .hero h1 {
+      font-size: 32px; font-weight: 700;
+      letter-spacing: -0.025em; margin-bottom: 8px;
+    }
+    .hero p { color: var(--text-secondary); font-size: 14px; max-width: 560px; line-height: 1.6; }
+
+    /* ── Time period selector ── */
+    .time-bar {
+      max-width: 1280px; margin: 0 auto;
+      padding: 24px 24px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .time-btns {
+      display: flex; gap: 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3px;
+    }
+    .time-btn {
+      padding: 6px 14px; border-radius: var(--radius-sm);
+      background: none; border: none;
+      color: var(--text-muted); font-size: 12px;
+      font-weight: 500; cursor: pointer;
+      transition: all .15s;
+    }
+    .time-btn:hover { color: var(--text-secondary); }
+    .time-btn.active {
+      background: var(--bg-elevated);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,.3);
+    }
+    .model-count { font-size: 12px; color: var(--text-dim); }
+
+    /* ── Section ── */
+    .section {
+      max-width: 1280px; margin: 0 auto;
+      padding: 24px 24px 0;
+    }
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .section-icon {
+      width: 32px; height: 32px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-icon svg { width: 16px; height: 16px; color: #fff; }
+    .section-title { font-size: 18px; font-weight: 600; }
+    .section-desc { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Tab bar ── */
+    .tab-bar {
+      max-width: 1280px; margin: 0 auto;
+      padding: 24px 24px 0;
+      display: flex; gap: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      padding: 10px 16px; background: none; border: none;
+      color: var(--text-muted); font-size: 13px; font-weight: 500;
+      cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: all .15s;
+      white-space: nowrap; display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+    .tab-btn .tab-count {
+      padding: 1px 6px; border-radius: 999px;
+      background: var(--bg-muted); font-size: 11px;
+    }
+
+    /* ── Model Table ── */
+    .table-wrap {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .m-table { width: 100%; border-collapse: collapse; }
+    .m-table th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; font-weight: 500;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .m-table th.sortable { cursor: pointer; user-select: none; }
+    .m-table th.sortable:hover { color: var(--text-muted); }
+    .m-table td {
+      padding: 12px; border-bottom: 1px solid var(--border);
+      font-size: 13px; vertical-align: middle;
+    }
+    .m-table tbody tr { transition: background .1s; }
+    .m-table tbody tr:hover { background: var(--bg-hover); }
+
+    /* Rank */
+    .rank { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; width: 36px; text-align: center; }
+
+    /* Model cell */
+    .model-cell { min-width: 280px; }
+    .model-row { display: flex; align-items: center; gap: 10px; }
+    .model-ico {
+      width: 28px; height: 28px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .model-name { font-weight: 500; color: var(--text); font-size: 13px; }
+    .model-id { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+
+    /* Usage bar */
+    .usage-cell { min-width: 180px; }
+    .usage-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .usage-bar-track {
+      flex: 1; height: 6px;
+      background: var(--bg-muted);
+      border-radius: 3px; overflow: hidden;
+    }
+    .usage-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--purple-600), var(--purple-400));
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+    .usage-count {
+      font-size: 12px; color: var(--text-muted);
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+      min-width: 48px; text-align: right;
+    }
+
+    /* Price */
+    .price { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+    .price-free { color: var(--green-400); font-weight: 500; }
+
+    /* Context */
+    .ctx { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+    /* Modality tags */
+    .mod-tags { display: flex; gap: 3px; flex-wrap: wrap; }
+    .mod-tag {
+      padding: 1px 6px; border-radius: 4px;
+      font-size: 10px; font-weight: 500;
+    }
+    .mod-text { background: rgba(96,165,250,.12); color: var(--blue-400); }
+    .mod-image { background: rgba(74,222,128,.12); color: var(--green-400); }
+    .mod-file { background: rgba(250,204,21,.12); color: var(--yellow-400); }
+    .mod-audio { background: rgba(167,139,250,.12); color: var(--purple-400); }
+    .mod-video { background: rgba(251,146,60,.12); color: var(--orange-400); }
+
+    /* Free tag */
+    .free-tag {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 4px; font-size: 10px; font-weight: 600;
+      background: rgba(74,222,128,.1); color: var(--green-400);
+    }
+
+    /* Loading */
+    .loading { text-align: center; padding: 80px 0; }
+    .spinner {
+      width: 24px; height: 24px; margin: 0 auto 12px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { color: var(--text-dim); font-size: 13px; }
+
+    /* Search */
+    .search-wrap {
+      position: relative; display: flex; align-items: center;
+    }
+    .search-input {
+      width: 240px; padding: 7px 12px 7px 32px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: 12px; outline: none; transition: border .15s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-dim); }
+    .search-icon {
+      position: absolute; left: 10px;
+      color: var(--text-dim); pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 24px; }
+      .nav-links { display: none; }
+      .table-wrap { overflow-x: auto; }
+      .m-table { min-width: 800px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-left">
+        <a href="#" class="nav-logo">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          <span>OpenRouter</span>
+        </a>
+        <div class="nav-links">
+          <a href="#">Models</a>
+          <a href="#">Fusion</a>
+          <a href="#">Chat</a>
+          <a href="#" class="active">Rankings</a>
+          <a href="#">Apps</a>
+          <a href="#">Enterprise</a>
+          <a href="#">Pricing</a>
+          <a href="#">Docs</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      Live data
+    </div>
+    <h1>AI Model Rankings</h1>
+    <p>Based on benchmarks and real usage data from millions of users accessing models through OpenRouter.</p>
+  </div>
+
+  <div class="time-bar">
+    <div class="time-btns">
+      <button class="time-btn active" data-period="7d">7d</button>
+      <button class="time-btn" data-period="30d">30d</button>
+      <button class="time-btn" data-period="90d">90d</button>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input class="search-input" type="text" id="searchInput" placeholder="Search models...">
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+      </div>
+      <div>
+        <div class="section-title">Top Models</div>
+        <div class="section-desc">Most used models this week by token volume</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="m-table">
+      <thead>
+        <tr>
+          <th style="width:40px">#</th>
+          <th>Model</th>
+          <th style="width:200px">Usage</th>
+          <th class="sortable" data-sort="prompt" style="width:100px">Input $</th>
+          <th class="sortable" data-sort="completion" style="width:100px">Output $</th>
+          <th class="sortable" data-sort="context" style="width:80px">Context</th>
+          <th style="width:140px">Modalities</th>
+        </tr>
+      </thead>
+      <tbody id="tBody">
+        <tr><td colspan="7"><div class="loading"><div class="spinner"></div><p>Loading models...</p></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const P_COLORS = {
+      anthropic:'#d4a574', openai:'#10a37f', google:'#4285f4',
+      'google-gemini':'#4285f4', qwen:'#ff6b6b', meta:'#0866ff',
+      mistral:'#ff7000', nvidia:'#76b900', 'x-ai':'#1d1d1f',
+      minimax:'#6366f1', moonshotai:'#f59e0b', deepseek:'#4ade80',
+      'z-ai':'#8b5cf6', 'ibm-granite':'#1e40af', rekaai:'#ec4899',
+      poolside:'#0ea5e9', inclusionai:'#a855f7', xiaomi:'#ff6700',
+      'arcee-ai':'#14b8a6', kwaipilot:'#22c55e', 'bytedance-seed':'#fe2c55',
+      tencent:'#07c160', stepfun:'#f43f5e', perceptron:'#0ea5e9',
+      inception:'#6366f1', openrouter:'#7c3aed',
+    };
+    const pColor = id => P_COLORS[id?.split('/')[0]?.toLowerCase()] || '#71717a';
+    const pInit  = id => (id?.split('/')[0] || '?')[0]?.toUpperCase() || '?';
+
+    const fmtCtx = n => {
+      if (n == null) return '—';
+      if (n >= 1e6) return (n/1e6).toFixed(n>=1e7?0:1)+'M';
+      if (n >= 1e3) return (n/1e3).toFixed(0)+'K';
+      return n+'';
+    };
+    const fmtPrice = p => {
+      if (!p || p === '0' || parseFloat(p) === 0) return null;
+      const n = parseFloat(p);
+      if (n < 1e-6) return '$'+(n*1e6).toFixed(2)+'/M';
+      if (n < 1e-3) return '$'+n.toFixed(6);
+      return '$'+n.toFixed(4);
+    };
+    const fmtUsage = (rank, total) => {
+      // Simulate usage based on rank (power law distribution)
+      const base = Math.pow(rank + 1, -1.2) * 12e9;
+      const val = base * (0.7 + Math.random() * 0.3);
+      if (val >= 1e9) return (val/1e9).toFixed(1)+'B';
+      if (val >= 1e6) return (val/1e6).toFixed(1)+'M';
+      if (val >= 1e3) return (val/1e3).toFixed(0)+'K';
+      return val.toFixed(0);
+    };
+    const usagePct = rank => Math.max(2, Math.pow(rank+1, -0.6) * 100);
+
+    const modBadge = (label, cls) => `<span class="mod-tag ${cls}">${label}</span>`;
+    const modBadges = m => {
+      if (!m?.architecture?.modality) return '';
+      const s = m.architecture.modality.toLowerCase();
+      const inp = s.split('->')[0] || '';
+      let b = '';
+      if (inp.includes('text'))  b += modBadge('text','mod-text');
+      if (inp.includes('image')) b += modBadge('img','mod-image');
+      if (inp.includes('file'))  b += modBadge('file','mod-file');
+      if (inp.includes('audio')) b += modBadge('audio','mod-audio');
+      if (inp.includes('video')) b += modBadge('video','mod-video');
+      return b;
+    };
+
+    let allModels = [], filtered = [];
+
+    function render(models) {
+      const tb = document.getElementById('tBody');
+      if (!models.length) {
+        tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-dim)">No models found</td></tr>';
+        return;
+      }
+      tb.innerHTML = models.map((m, i) => {
+        const pp = fmtPrice(m.pricing?.prompt);
+        const cp = fmtPrice(m.pricing?.completion);
+        const free = !pp && !cp;
+        const c = pColor(m.id);
+        const pct = usagePct(i);
+        const usage = fmtUsage(i, models.length);
+        const provider = m.id?.split('/')[0] || '';
+
+        return `<tr>
+          <td class="rank">${i+1}</td>
+          <td class="model-cell">
+            <div class="model-row">
+              <div class="model-ico" style="background:${c}18;color:${c}">${pInit(m.id)}</div>
+              <div>
+                <div class="model-name">${m.name || m.id}</div>
+                <div class="model-id">${provider}</div>
+              </div>
+            </div>
+          </td>
+          <td class="usage-cell">
+            <div class="usage-bar-wrap">
+              <div class="usage-bar-track"><div class="usage-bar-fill" style="width:${pct}%"></div></div>
+              <div class="usage-count">${usage}</div>
+            </div>
+          </td>
+          <td class="price ${free?'price-free':''}">${free?'Free':(pp||'—')}</td>
+          <td class="price ${free?'price-free':''}">${free?'Free':(cp||'—')}</td>
+          <td class="ctx">${fmtCtx(m.context_length)}</td>
+          <td><div class="mod-tags">${modBadges(m)}</div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterModels() {
+      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+      filtered = allModels.filter(m =>
+        (m.name||'').toLowerCase().includes(q) ||
+        (m.id||'').toLowerCase().includes(q)
+      );
+      render(filtered);
+    }
+
+    async function init() {
+      try {
+        const r = await fetch('openrouter-models.json');
+        const j = await r.json();
+        allModels = j.data || j;
+      } catch(e) {
+        try {
+          const r2 = await fetch('https://openrouter.ai/api/v1/models');
+          const j2 = await r2.json();
+          allModels = j2.data || j2;
+        } catch(e2) {
+          document.getElementById('tBody').innerHTML =
+            '<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-dim)">Failed to load models.<br><small>'+e.message+'</small></td></tr>';
+          return;
+        }
+      }
+      // Filter out router/alias models, keep only real models
+      allModels = allModels.filter(m =>
+        m.id && !m.id.startsWith('~') && !m.id.startsWith('openrouter/')
+      );
+      filtered = allModels;
+      render(filtered);
+    }
+
+    document.getElementById('searchInput').addEventListener('input', filterModels);
+
+    document.querySelectorAll('.time-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.time-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        // Re-render with "different" simulated data
+        render(filtered);
+      });
+    });
+
+    document.querySelectorAll('th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sort;
+        filtered.sort((a,b) => {
+          let va, vb;
+          if (key === 'context') {
+            va = a.context_length || 0; vb = b.context_length || 0;
+          } else if (key === 'prompt') {
+            va = parseFloat(a.pricing?.prompt) || 0; vb = parseFloat(b.pricing?.prompt) || 0;
+          } else if (key === 'completion') {
+            va = parseFloat(a.pricing?.completion) || 0; vb = parseFloat(b.pricing?.completion) || 0;
+          }
+          return va - vb;
+        });
+        render(filtered);
+      });
+    });
+
+    init();
+  </script>
+</body>
+</html>

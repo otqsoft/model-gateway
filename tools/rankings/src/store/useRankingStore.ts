@@ -35,11 +35,31 @@ interface RankingState {
   benchmarkModels: Model[];
   fastestModels: Model[];
   topApps: TopApp[];
-  stats: { totalModels: number; providers: { name: string; count: number; share: number }[]; categories: { name: string; count: number }[]; usageTrend: { date: string; tokens: number }[] } | null;
-  contextLengthData: { distribution: { label: string; count: number }[]; trend: { date: string; short1k: number; mid10k: number; long100k: number }[] } | null;
+  stats: { totalModels: number; providers: { name: string; count: number; share: number }[]; categories: { name: string; count: number }[] } | null;
+  contextLengthData: { distribution: { label: string; count: number }[] } | null;
   loading: boolean;
   error: string | null;
   fetchAllData: () => Promise<void>;
+}
+
+// API base path - uses Vite's base URL in production, /api in development
+const API_BASE = import.meta.env.DEV ? '/api' : `${import.meta.env.BASE_URL}api`;
+
+/**
+ * Safe fetch that returns null on failure instead of throwing
+ */
+async function safeFetch(url: string): Promise<Response | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`Fetch failed: ${url} returned ${res.status}`);
+      return null;
+    }
+    return res;
+  } catch (err) {
+    console.warn(`Fetch failed: ${url}`, err);
+    return null;
+  }
 }
 
 const useRankingStore = create<RankingState>((set) => ({
@@ -56,24 +76,31 @@ const useRankingStore = create<RankingState>((set) => ({
   fetchAllData: async () => {
     set({ loading: true, error: null });
     try {
-      const [modelsRes, statsRes, benchmarksRes, fastestRes, topAppsRes, contextLengthRes] = await Promise.all([
-        fetch('/api/models?limit=200'),
-        fetch('/api/stats'),
-        fetch('/api/models/benchmarks'),
-        fetch('/api/models/fastest'),
-        fetch('/api/stats/top-apps'),
-        fetch('/api/stats/context-length'),
+      const [modelsRes, statsRes, leaderboardRes, benchmarksRes, fastestRes, topAppsRes, contextLengthRes] = await Promise.all([
+        safeFetch(`${API_BASE}/models?limit=200`),
+        safeFetch(`${API_BASE}/stats`),
+        safeFetch(`${API_BASE}/models/leaderboard`),
+        safeFetch(`${API_BASE}/models/benchmarks`),
+        safeFetch(`${API_BASE}/models/fastest`),
+        safeFetch(`${API_BASE}/stats/top-apps`),
+        safeFetch(`${API_BASE}/stats/context-length`),
       ]);
 
-      const modelsData = await modelsRes.json();
-      const statsData = await statsRes.json();
-      const benchmarksData = await benchmarksRes.json();
-      const fastestData = await fastestRes.json();
-      const topAppsData = await topAppsRes.json();
-      const contextLengthData = await contextLengthRes.json();
+      // Parse each response, using fallback data if fetch failed
+      const modelsData = modelsRes ? await modelsRes.json().catch(() => ({ data: [] })) : { data: [] };
+      const statsData = statsRes ? await statsRes.json().catch(() => null) : null;
+      const leaderboardData = leaderboardRes ? await leaderboardRes.json().catch(() => []) : [];
+      const benchmarksData = benchmarksRes ? await benchmarksRes.json().catch(() => []) : [];
+      const fastestData = fastestRes ? await fastestRes.json().catch(() => []) : [];
+      const topAppsData = topAppsRes ? await topAppsRes.json().catch(() => []) : [];
+      const contextLengthData = contextLengthRes ? await contextLengthRes.json().catch(() => null) : null;
 
       const allModels = modelsData.data || modelsData.models || [];
-      const leaderboard = [...allModels].sort((a: Model, b: Model) => b.weeklyTokens - a.weeklyTokens);
+
+      // If leaderboard is empty, generate from models sorted by weeklyTokens
+      const leaderboard = Array.isArray(leaderboardData) && leaderboardData.length > 0
+        ? leaderboardData
+        : [...allModels].sort((a: Model, b: Model) => b.weeklyTokens - a.weeklyTokens);
 
       set({
         models: allModels,

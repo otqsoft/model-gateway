@@ -31,6 +31,8 @@ interface TopModelsResponse {
 
 const modelColorMap: Record<string, string> = {};
 
+const API_BASE = import.meta.env.DEV ? '/api' : `${import.meta.env.BASE_URL}api`;
+
 export default function TopModels() {
   const { t } = useLanguageStore();
   const { theme } = useThemeStore();
@@ -45,7 +47,7 @@ export default function TopModels() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/stats/top-models');
+        const res = await fetch(`${API_BASE}/stats/top-models`);
         const result = await res.json();
         setData(result);
         result.modelColors.forEach((m: { name: string; color: string }) => {
@@ -221,12 +223,12 @@ export default function TopModels() {
           }`}
           style={{ transform: 'translateX(calc(100% + 16px))' }}
         >
-          <div className="rounded-lg border border-light-300 dark:border-dark-700 bg-white dark:bg-dark-800 p-4 shadow-xl">
+          <div className="h-85 rounded-lg border border-light-400 dark:border-dark-700 bg-white dark:bg-dark-800 p-4 shadow-xl flex flex-col">
             <p className="font-mono text-xs text-gray-400 dark:text-zinc-500 mb-3">
               {selectedWeekData ? selectedWeekData.date : ''}
             </p>
             {selectedWeekData && (
-              <div className="space-y-2 max-h-72 overflow-y-auto">
+              <div className="space-y-2 flex-1 overflow-y-auto">
                 {selectedWeekData.models
                   .sort((a, b) => b.tokens - a.tokens)
                   .map((model) => (

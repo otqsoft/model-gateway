@@ -4,6 +4,9 @@ import Home from "@/pages/Home";
 import ModelDetail from "@/pages/ModelDetail";
 import { useThemeStore } from '@/store/useThemeStore';
 
+// Base path for deployment (matches vite base config)
+const BASE_PATH = import.meta.env.BASE_URL;
+
 export default function App() {
   const { theme } = useThemeStore();
 
@@ -13,7 +16,7 @@ export default function App() {
   }, [theme]);
 
   return (
-    <Router>
+    <Router basename={BASE_PATH}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/model/:id" element={<ModelDetail />} />

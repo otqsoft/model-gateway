@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { fetchModels, getModelById, type Model } from '../services/openrouter.js';
+import { fetchRankingsData } from '../services/rankingsScraper.js';
 
 const router = Router();
 
@@ -9,6 +10,23 @@ const router = Router();
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     let models = await fetchModels();
+
+    // Enrich with real ranking data if available
+    try {
+      const rankingsData = await fetchRankingsData();
+      if (rankingsData.leaderboard.length > 0) {
+        const rankMap = new Map(rankingsData.leaderboard.map(e => [e.id, e]));
+        for (const model of models) {
+          const ranking = rankMap.get(model.id);
+          if (ranking) {
+            model.weeklyTokens = ranking.weeklyTokens;
+            model.weeklyChange = ranking.weeklyChange;
+          }
+        }
+      }
+    } catch {
+      // Keep mock data as fallback
+    }
 
     // Filter by category
     const category = req.query.category as string;
@@ -62,7 +80,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
     // Sort
     const sort = req.query.sort as string;
-    if (sort) {
+    if (sort === 'usage') {
+      models.sort((a, b) => b.weeklyTokens - a.weeklyTokens);
+    } else if (sort) {
       switch (sort) {
         case 'price_asc':
           models.sort((a, b) => a.inputPrice - b.inputPrice);
@@ -72,10 +92,6 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
           break;
         case 'context_length':
           models.sort((a, b) => b.context_length - a.context_length);
-          break;
-        case 'usage':
-        default:
-          // No real usage data, keep default order
           break;
       }
     }
@@ -90,6 +106,39 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     res.json({ data, total, page, limit });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch models' });
+  }
+});
+
+/**
+ * GET /api/models/leaderboard - Get leaderboard sorted by real usage data
+ */
+router.get('/leaderboard', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const models = await fetchModels();
+
+    // Enrich with real ranking data
+    try {
+      const rankingsData = await fetchRankingsData();
+      if (rankingsData.leaderboard.length > 0) {
+        const rankMap = new Map(rankingsData.leaderboard.map(e => [e.id, e]));
+        for (const model of models) {
+          const ranking = rankMap.get(model.id);
+          if (ranking) {
+            model.weeklyTokens = ranking.weeklyTokens;
+            model.weeklyChange = ranking.weeklyChange;
+          }
+        }
+      }
+    } catch {
+      // Keep mock data as fallback
+    }
+
+    // Sort by weekly tokens (real data first, then mock)
+    const sorted = [...models].sort((a, b) => b.weeklyTokens - a.weeklyTokens);
+    const top50 = sorted.slice(0, 50);
+    res.json(top50);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
 });
 
@@ -136,6 +185,19 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ error: 'Model not found' });
       return;
     }
+
+    // Enrich with real ranking data if available
+    try {
+      const rankingsData = await fetchRankingsData();
+      const ranking = rankingsData.leaderboard.find(e => e.id === id);
+      if (ranking) {
+        model.weeklyTokens = ranking.weeklyTokens;
+        model.weeklyChange = ranking.weeklyChange;
+      }
+    } catch {
+      // Keep mock data as fallback
+    }
+
     res.json(model);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch model' });

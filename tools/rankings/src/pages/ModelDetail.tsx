@@ -6,6 +6,8 @@ import ModelCard from '@/components/ModelCard';
 import type { Model } from '@/store/useRankingStore';
 import { useLanguageStore } from '@/store/useLanguageStore';
 
+const API_BASE = import.meta.env.DEV ? '/api' : `${import.meta.env.BASE_URL}api`;
+
 export default function ModelDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -18,7 +20,7 @@ export default function ModelDetail() {
     if (!id) return;
     const fetchModel = async () => {
       try {
-        const res = await fetch(`/api/models/${encodeURIComponent(id)}`);
+        const res = await fetch(`${API_BASE}/models/${encodeURIComponent(id)}`);
         if (!res.ok) throw new Error(t('failed_to_load_data'));
         const data = await res.json();
         setModel(data);

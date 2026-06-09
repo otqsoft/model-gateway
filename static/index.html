@@ -1231,6 +1231,14 @@ input:checked + .slider:before{
         <label class="form-label">Coze Bot ID <span style="color:var(--text-muted);font-weight:400;font-size:12px">(仅 Coze 供应商)</span></label>
         <input class="form-input" id="md-bot-id" placeholder="如 7555813188811014186">
       </div>
+      <div class="form-group">
+        <label class="form-label">系统提示词
+          <span style="color:var(--text-muted);font-weight:400;font-size:12px">（可选，每次调用时自动注入到对话最前端）</span>
+        </label>
+        <textarea class="form-input" id="md-system-prompt" rows="4"
+          style="resize:vertical;font-family:monospace;font-size:13px;line-height:1.6"
+          placeholder="例如：你是一个专业的 AI 助手，请用中文简洁地回答问题…"></textarea>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-model')">取消</button>
@@ -2025,6 +2033,9 @@ async function openModelModal(md=null, readonly=false){
   } catch(_) {}
   document.getElementById('md-bot-id').value = botId;
 
+  // 系统提示词
+  document.getElementById('md-system-prompt').value = (md && md.system_prompt) ? md.system_prompt : '';
+
   // 显示/隐藏保存按钮
   document.getElementById('md-save-btn').style.display=readonly?'none':'block';
   
@@ -2090,6 +2101,9 @@ async function submitModel(){
   if(botId){
     body.extra_headers={bot_id:botId};
   }
+  // 系统提示词（空字符串转为 null，避免存储空字符串）
+  const systemPrompt=document.getElementById('md-system-prompt').value;
+  body.system_prompt = systemPrompt.trim() || null;
   try{
     if(id) await api('PUT','/admin/models/'+id,body);
     else await api('POST','/admin/models',body);

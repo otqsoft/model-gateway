@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS `model_mapping` (
   `is_enabled`        TINYINT(1)   NOT NULL DEFAULT 1    COMMENT '是否启用',
   `description`       VARCHAR(255)          DEFAULT NULL COMMENT '模型描述',
   `extra_headers`    JSON                  DEFAULT NULL COMMENT '厂商额外参数，如 Coze 的 bot_id',
+  `system_prompt`    MEDIUMTEXT            DEFAULT NULL COMMENT '模型级系统提示词（注入到每次会话最前端）',
   `created_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -231,3 +232,9 @@ INSERT INTO `model_mapping` (`model_alias`, `provider_name`, `upstream_model`, `
 -- ============================================================
 ALTER TABLE `model_mapping`
   ADD COLUMN IF NOT EXISTS `supports_multimodal` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否支持多模态（图像理解）' AFTER `supports_stream`;
+
+-- ============================================================
+-- 增量变更：为已有数据库添加 system_prompt 字段
+-- ============================================================
+ALTER TABLE `model_mapping`
+  ADD COLUMN IF NOT EXISTS `system_prompt` MEDIUMTEXT DEFAULT NULL COMMENT '模型级系统提示词（注入到每次会话最前端）' AFTER `extra_headers`;

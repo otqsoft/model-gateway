@@ -80,6 +80,11 @@ async def chat_completions(
     provider_name = model_row["provider_name"]
     upstream_model = model_row["upstream_model"]
 
+    # ── 4a. 注入模型级系统提示词 ───────────────────────────────
+    system_prompt = (model_row.get("system_prompt") or "").strip()
+    if system_prompt:
+        body = _inject_system_prompt(body, system_prompt)
+
     # ── 4. 查找厂商获取并发配置 ────────────────────────────────
     provider_row = await get_provider_by_name(provider_name)
     if not provider_row or not provider_row.get("is_enabled"):
@@ -563,5 +568,41 @@ async def _stream_generator(
                 total_tokens = bill["total_tokens"]
                 total_cost = bill["total_cost"]
 
-            # 即使 usage 缺失导致 tokens=0，也要统计“调用次数”
+            # 即使 usage 缺失导致 tokens=0，也要统计"调用次数"
             await increment_key_stats(key_row.id, int(total_tokens), float(total_cost))
+
+
+def _inject_system_prompt(
+    body: ChatCompletionRequest,
+    system_prompt: str,
+) -> ChatCompletionRequest:
+    """
+    将模型级系统提示词注入到请求消息列表中。
+
+    注入策略：
+    - 若客户端已有 system 消息 → 将模型提示词**前置**拼接到第一条 system 消息内容之前
+      （以换行分隔，允许客户端在模型提示词基础上追加自己的指令）
+    - 若客户端无 system 消息 → 在 messages 列表头部插入新的 system 消息
+    """
+    from copy import deepcopy
+    from models.openai_models import ChatMessage
+
+    new_body = deepcopy(body)
+    messages = list(new_body.messages or [])
+
+    # 找第一条 system 消息的索引
+    sys_idx = next((i for i, m in enumerate(messages) if m.role == "system"), None)
+
+    if sys_idx is not None:
+        # 已有 system 消息：模型提示词前置拼接
+        existing_content = messages[sys_idx].content or ""
+        messages[sys_idx] = ChatMessage(
+            role="system",
+            content=f"{system_prompt}\n\n{existing_content}".strip(),
+        )
+    else:
+        # 无 system 消息：插入到列表最前面
+        messages.insert(0, ChatMessage(role="system", content=system_prompt))
+
+    new_body.messages = messages
+    return new_body

@@ -1,13 +1,22 @@
 -- ============================================================
--- 迁移脚本 v3：新增 OpenRouter 供应商
+-- 迁移脚本 v3：新增 OpenRouter 供应商 + model_mapping.system_prompt 字段
 -- 说明：在已有 model_gateway 数据库上执行此脚本完成升级
--- 执行时间：2026-06-04
+-- 执行时间：2026-06-09
 -- ============================================================
 
 USE `model_gateway`;
 
 -- ────────────────────────────────────────────────────────────
--- 1. 新增 OpenRouter 供应商记录
+-- 1. model_mapping 表新增 system_prompt 字段
+--    使用 MEDIUMTEXT 以支持超长提示词（最大 16MB）
+-- ────────────────────────────────────────────────────────────
+ALTER TABLE `model_mapping`
+  ADD COLUMN IF NOT EXISTS `system_prompt` MEDIUMTEXT DEFAULT NULL
+    COMMENT '模型级系统提示词（注入到每次会话最前端）'
+    AFTER `extra_headers`;
+
+-- ────────────────────────────────────────────────────────────
+-- 2. 新增 OpenRouter 供应商记录
 --    若已存在则跳过（INSERT IGNORE）
 -- ────────────────────────────────────────────────────────────
 INSERT IGNORE INTO `model_providers`
@@ -17,7 +26,7 @@ VALUES
      'OpenRouter 聚合路由平台，覆盖 GPT-4、Claude、Gemini、Llama 等数百个模型');
 
 -- ────────────────────────────────────────────────────────────
--- 2. 初始化常用 OpenRouter 模型映射（可按需增删）
+-- 3. 初始化常用 OpenRouter 模型映射（可按需增删）
 --    价格单位：元/1K tokens（以官方美元价 × 7.2 换算，仅供参考）
 -- ────────────────────────────────────────────────────────────
 INSERT IGNORE INTO `model_mapping`

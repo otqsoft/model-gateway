@@ -141,6 +141,7 @@ class ModelMappingCreate(BaseModel):
     is_enabled: bool = True
     description: Optional[str] = None
     extra_headers: Optional[dict] = None   # Coze 等厂商的额外参数（如 bot_id）
+    system_prompt: Optional[str] = None    # 模型级系统提示词，注入到每次会话最前端
 
 
 class ModelMappingOut(BaseModel):
@@ -156,6 +157,7 @@ class ModelMappingOut(BaseModel):
     is_enabled: bool
     description: Optional[str]
     extra_headers: Optional[Any]   # 返回 Coze bot_id 等配置
+    system_prompt: Optional[str]   # 模型级系统提示词
 
 
 # ── 总览统计 ─────────────────────────────────────────────────

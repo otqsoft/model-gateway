@@ -59,6 +59,132 @@
   --shadow-glow-green:0 0 20px rgba(52,211,153,.15);
 }
 
+/* ─── Light Theme ────────────────────────────────────────── */
+[data-theme="light"]{
+  --bg-deep:#f0f4f8;
+  --bg-main:#f5f7fa;
+  --bg-card:#ffffff;
+  --bg-card2:#f0f4f8;
+  --bg-hover:#e8eef5;
+  --bg-glass:rgba(255,255,255,.85);
+  --border:#d1dce8;
+  --border-bright:#aabfd4;
+
+  --text-primary:#1a2535;
+  --text-secondary:#4a6080;
+  --text-muted:#8aa5bf;
+
+  --accent-blue:#0284c7;
+  --accent-cyan:#0891b2;
+  --accent-green:#059669;
+  --accent-teal:#0d9488;
+  --accent-orange:#ea580c;
+  --accent-red:#dc2626;
+  --accent-purple:#7c3aed;
+  --accent-yellow:#d97706;
+
+  --grad-primary:linear-gradient(135deg,#0284c7,#0891b2);
+  --grad-green:linear-gradient(135deg,#059669,#047857);
+  --grad-purple:linear-gradient(135deg,#7c3aed,#6d28d9);
+  --grad-orange:linear-gradient(135deg,#ea580c,#c2410c);
+  --grad-red:linear-gradient(135deg,#dc2626,#b91c1c);
+
+  --shadow-sm:0 2px 8px rgba(0,50,100,.08);
+  --shadow-md:0 4px 20px rgba(0,50,100,.12);
+  --shadow-glow:0 0 20px rgba(2,132,199,.12);
+  --shadow-glow-green:0 0 20px rgba(5,150,105,.12);
+}
+
+/* ─── Light theme component overrides ───────────────────── */
+[data-theme="light"] body{
+  background:var(--bg-main);
+}
+[data-theme="light"] body::before{
+  background-image:
+    linear-gradient(rgba(2,132,199,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(2,132,199,.04) 1px,transparent 1px);
+}
+[data-theme="light"] #sidebar{
+  background:linear-gradient(180deg,#ffffff 0%,#f5f7fa 100%);
+  box-shadow:2px 0 16px rgba(0,50,100,.08);
+}
+[data-theme="light"] #sidebar::after{
+  background:radial-gradient(circle,rgba(2,132,199,.08) 0%,transparent 70%);
+}
+[data-theme="light"] #topbar{
+  background:rgba(245,247,250,.92);
+}
+[data-theme="light"] #topbar input{
+  background:rgba(240,244,248,.8) !important;
+}
+[data-theme="light"] th{
+  background:rgba(240,244,248,.9);
+}
+[data-theme="light"] td{
+  border-bottom-color:rgba(209,220,232,.6);
+}
+[data-theme="light"] tr:hover td{background:rgba(2,132,199,.04)}
+[data-theme="light"] .modal{
+  background:linear-gradient(145deg,#ffffff,#f5f7fa);
+}
+[data-theme="light"] .modal-overlay{
+  background:rgba(0,30,60,.45);
+}
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] .form-textarea{
+  background:rgba(240,244,248,.7);
+}
+[data-theme="light"] .form-input:focus,
+[data-theme="light"] .form-select:focus,
+[data-theme="light"] .form-textarea:focus{
+  background:rgba(255,255,255,.9);
+}
+[data-theme="light"] .toast{
+  background:rgba(255,255,255,.96);
+  box-shadow:0 8px 32px rgba(0,50,100,.15);
+}
+[data-theme="light"] #browser-admin-btn{
+  box-shadow:0 2px 8px rgba(0,50,100,.08) !important;
+}
+[data-theme="light"] .key-box{
+  background:rgba(240,248,244,.9);
+}
+[data-theme="light"] .tag-input-wrap{
+  background:rgba(240,244,248,.7);
+}
+[data-theme="light"] .checkbox-select-input{
+  background:var(--bg-card2);
+}
+[data-theme="light"] .checkbox-select-dropdown{
+  background:var(--bg-card);
+  box-shadow:0 8px 32px rgba(0,50,100,.15);
+}
+[data-theme="light"] .checkbox-select-search{
+  background:var(--bg-card2);
+}
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator{
+  filter:none;
+}
+
+/* ─── Theme toggle button ────────────────────────────────── */
+#theme-toggle{
+  width:32px;height:32px;border-radius:var(--radius-sm);
+  border:none;
+  background:transparent;
+  color:var(--text-secondary);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;flex-shrink:0;
+  padding:0;
+}
+#theme-toggle:hover{
+  color:var(--accent-blue);
+  background:rgba(56,189,248,.08);
+}
+#theme-toggle svg{pointer-events:none;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+#theme-toggle:hover svg{transform:rotate(20deg) scale(1.1)}
+
 body{
   background:var(--bg-main);
   color:var(--text-primary);
@@ -702,6 +828,10 @@ input:checked + .slider:before{
           onblur="this.style.borderColor='var(--border)'"
           onchange="saveToken(this.value)" value="">
       </div>
+      <button id="theme-toggle" onclick="toggleTheme()" title="切换主题">
+        <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:block"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
     </div>
   </header>
 
@@ -1474,6 +1604,100 @@ input:checked + .slider:before{
 
 <!-- ═══════════════ JS ═══════════════ -->
 <script>
+// ─── Theme ─────────────────────────────────────────────────
+(function(){
+  const saved = localStorage.getItem('mg_theme') || 'dark';
+  applyTheme(saved, true);
+})();
+
+function applyTheme(theme, skipTransition){
+  const html = document.documentElement;
+  if(!skipTransition){
+    html.style.transition = 'background .25s,color .25s';
+    setTimeout(()=>{ html.style.transition=''; }, 300);
+  }
+  if(theme === 'light'){
+    html.setAttribute('data-theme','light');
+  } else {
+    html.removeAttribute('data-theme');
+  }
+  // sync icons
+  const iconDark = document.getElementById('theme-icon-dark');
+  const iconLight = document.getElementById('theme-icon-light');
+  if(iconDark && iconLight){
+    iconDark.style.display = theme === 'light' ? 'none' : 'block';
+    iconLight.style.display = theme === 'light' ? 'block' : 'none';
+  }
+  localStorage.setItem('mg_theme', theme);
+}
+
+function toggleTheme(){
+  const current = localStorage.getItem('mg_theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+  updateChartTheme();   // 立即更新图表颜色，无需等待数据刷新
+}
+
+// ─── Chart theme helpers ───────────────────────────────────
+function isLightTheme(){ return document.documentElement.hasAttribute('data-theme'); }
+function chartGridColor(){ return isLightTheme() ? 'rgba(209,220,232,.6)' : 'rgba(48,54,61,.5)'; }
+function chartTickColor(){ return isLightTheme() ? '#4a6080' : '#8b949e'; }
+function chartBorderColor(){ return isLightTheme() ? '#d1dce8' : '#161b22'; }
+function chartTooltipBg(){ return isLightTheme() ? '#ffffff' : '#1c2128'; }
+function chartTooltipBorder(){ return isLightTheme() ? '#d1dce8' : '#30363d'; }
+function chartTooltipTitleColor(){ return isLightTheme() ? '#1a2535' : '#e6edf3'; }
+function chartTooltipBodyColor(){ return isLightTheme() ? '#4a6080' : '#8b949e'; }
+
+// ─── 主题切换即时更新图表颜色（无需等待数据刷新）────────────
+function updateChartTheme(){
+  const light = isLightTheme();
+
+  // ── 趋势图 ──
+  if(trendChartInst){
+    const ds = trendChartInst.data.datasets;
+    // bar dataset
+    if(ds[0]){
+      ds[0].backgroundColor = light ? 'rgba(2,132,199,.2)' : 'rgba(88,166,255,.35)';
+      ds[0].borderColor = light ? 'rgba(2,132,199,.5)' : 'rgba(88,166,255,.6)';
+    }
+    // Token line
+    if(ds[1]){
+      ds[1].borderColor = light ? '#0d9488' : '#39d0d0';
+      ds[1].backgroundColor = light ? 'rgba(13,148,136,.08)' : 'rgba(57,208,208,.1)';
+    }
+    // 错误数 line
+    if(ds[2]){
+      ds[2].borderColor = light ? '#dc2626' : '#f85149';
+    }
+    // scales & tooltip
+    const opt = trendChartInst.options;
+    opt.plugins.tooltip.backgroundColor = chartTooltipBg();
+    opt.plugins.tooltip.borderColor = chartTooltipBorder();
+    opt.plugins.tooltip.titleColor = chartTooltipTitleColor();
+    opt.plugins.tooltip.bodyColor = chartTooltipBodyColor();
+    opt.scales.x.grid.color = chartGridColor();
+    opt.scales.x.ticks.color = chartTickColor();
+    opt.scales.y.grid.color = chartGridColor();
+    opt.scales.y.ticks.color = chartTickColor();
+    opt.scales.y.title.color = chartTickColor();
+    opt.scales.y2.ticks.color = light ? '#0d9488' : '#39d0d0';
+    opt.scales.y2.title.color = light ? '#0d9488' : '#39d0d0';
+    trendChartInst.update('none');
+  }
+
+  // ── 饼图（供应商、Key、模型、智能体）──
+  const pieIds = ['providerPie','keyPie','modelPie','agentPie'];
+  pieIds.forEach(id => {
+    const inst = Chart.getChart(id);
+    if(!inst) return;
+    inst.data.datasets[0].borderColor = chartBorderColor();
+    inst.options.plugins.tooltip.backgroundColor = chartTooltipBg();
+    inst.options.plugins.tooltip.borderColor = chartTooltipBorder();
+    inst.options.plugins.tooltip.titleColor = chartTooltipTitleColor();
+    inst.options.plugins.tooltip.bodyColor = chartTooltipBodyColor();
+    inst.update('none');
+  });
+}
+
 // ─── Config & State ────────────────────────────────────────
 // 只读浏览模式：由后端在 /browser 路由注入 window.BROWSER_MODE / window.BROWSER_TOKEN
 const _BROWSER_MODE = !!(window.BROWSER_MODE);
@@ -1699,19 +1923,19 @@ async function loadTrendChart(){
       data:{
         labels,
         datasets:[
-          {type:'bar',label:'请求数',data:reqs,backgroundColor:'rgba(88,166,255,.35)',borderColor:'rgba(88,166,255,.6)',borderWidth:1,yAxisID:'y'},
-          {type:'line',label:'Token(M)',data:toks,borderColor:'#39d0d0',backgroundColor:'rgba(57,208,208,.1)',tension:.4,fill:true,pointRadius:3,yAxisID:'y2'},
-          {type:'line',label:'错误数',data:errs,borderColor:'#f85149',backgroundColor:'transparent',tension:.3,borderDash:[4,4],pointRadius:2,yAxisID:'y'},
+          {type:'bar',label:'请求数',data:reqs,backgroundColor:isLightTheme()?'rgba(2,132,199,.2)':'rgba(88,166,255,.35)',borderColor:isLightTheme()?'rgba(2,132,199,.5)':'rgba(88,166,255,.6)',borderWidth:1,yAxisID:'y'},
+          {type:'line',label:'Token(M)',data:toks,borderColor:isLightTheme()?'#0d9488':'#39d0d0',backgroundColor:isLightTheme()?'rgba(13,148,136,.08)':'rgba(57,208,208,.1)',tension:.4,fill:true,pointRadius:3,yAxisID:'y2'},
+          {type:'line',label:'错误数',data:errs,borderColor:isLightTheme()?'#dc2626':'#f85149',backgroundColor:'transparent',tension:.3,borderDash:[4,4],pointRadius:2,yAxisID:'y'},
         ]
       },
       options:{
         responsive:true,maintainAspectRatio:false,
         interaction:{mode:'index',intersect:false},
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,titleColor:'#e6edf3',bodyColor:'#8b949e'}},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:chartTooltipBg(),borderColor:chartTooltipBorder(),borderWidth:1,titleColor:chartTooltipTitleColor(),bodyColor:chartTooltipBodyColor()}},
         scales:{
-          x:{grid:{color:'rgba(48,54,61,.5)'},ticks:{color:'#8b949e',maxTicksLimit:12}},
-          y:{grid:{color:'rgba(48,54,61,.5)'},ticks:{color:'#8b949e'},position:'left',title:{display:true,text:'请求/错误数',color:'#8b949e'}},
-          y2:{grid:{display:false},ticks:{color:'#39d0d0'},position:'right',title:{display:true,text:'Token(M)',color:'#39d0d0'}}
+          x:{grid:{color:chartGridColor()},ticks:{color:chartTickColor(),maxTicksLimit:12}},
+          y:{grid:{color:chartGridColor()},ticks:{color:chartTickColor()},position:'left',title:{display:true,text:'请求/错误数',color:chartTickColor()}},
+          y2:{grid:{display:false},ticks:{color:isLightTheme()?'#0d9488':'#39d0d0'},position:'right',title:{display:true,text:'Token(M)',color:isLightTheme()?'#0d9488':'#39d0d0'}}
         }
       }
     });
@@ -1780,13 +2004,12 @@ function renderAgentStats(data){
   if(existing) existing.destroy();
   new Chart(el,{
     type:'doughnut',
-    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:'#161b22',borderWidth:2,hoverOffset:6}]},
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:chartBorderColor(),borderWidth:2,hoverOffset:6}]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtNum(ctx.raw)}次 (${items[ctx.dataIndex]?.call_percentage||0}%)`}}}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:chartTooltipBg(),borderColor:chartTooltipBorder(),borderWidth:1,titleColor:chartTooltipTitleColor(),bodyColor:chartTooltipBodyColor(),callbacks:{label:ctx=>`${ctx.label}: ${fmtNum(ctx.raw)}次 (${items[ctx.dataIndex]?.call_percentage||0}%)`}}}
     }
   });
-  // 图例：按供应商汇总，可以看到下属智能体数量
   const ld=document.getElementById('agentPieLegend');
   if(ld){
     ld.innerHTML=labels.map((l,i)=>{
@@ -1823,10 +2046,10 @@ function renderPie(canvasId,legendId,items,labelKey,valKey,colors){
   if(existing) existing.destroy();
   new Chart(el,{
     type:'doughnut',
-    data:{labels:rawLabels,datasets:[{data:vals,backgroundColor:colors,borderColor:'#161b22',borderWidth:2,hoverOffset:6}]},
+    data:{labels:rawLabels,datasets:[{data:vals,backgroundColor:colors,borderColor:chartBorderColor(),borderWidth:2,hoverOffset:6}]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${displayLabels[ctx.dataIndex]}: ${fmtToken(ctx.raw)} (${total>0?(ctx.raw/total*100).toFixed(1):0}%)`}}}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:chartTooltipBg(),borderColor:chartTooltipBorder(),borderWidth:1,titleColor:chartTooltipTitleColor(),bodyColor:chartTooltipBodyColor(),callbacks:{label:ctx=>`${displayLabels[ctx.dataIndex]}: ${fmtToken(ctx.raw)} (${total>0?(ctx.raw/total*100).toFixed(1):0}%)`}}}
     }
   });
   // legend

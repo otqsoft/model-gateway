@@ -1,0 +1,133 @@
+// 内置模型库
+// 参考文档：TechnicalArchitecture.md 第 5.2 节
+
+import type { ModelConfig } from "@/types";
+
+export const BUILTIN_MODELS: ModelConfig[] = [
+  {
+    id: "gpt-4o",
+    name: "GPT-4o",
+    provider: "OpenAI",
+    modalities: ["text", "image", "audio", "video"],
+    pricing: {
+      text: { inputPer1M: 2.5, outputPer1M: 10 },
+      image: { inputPer1M: 2.5 },
+      audio: { perMinute: 0.006 },
+      video: { perMinute: 0.006 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "gpt-4-turbo",
+    name: "GPT-4 Turbo",
+    provider: "OpenAI",
+    modalities: ["text", "image"],
+    pricing: {
+      text: { inputPer1M: 10, outputPer1M: 30 },
+      image: { inputPer1M: 10 },
+      audio: { perMinute: 0 },
+      video: { perMinute: 0 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "gpt-3.5-turbo",
+    name: "GPT-3.5 Turbo",
+    provider: "OpenAI",
+    modalities: ["text"],
+    pricing: {
+      text: { inputPer1M: 0.5, outputPer1M: 1.5 },
+      image: { inputPer1M: 0 },
+      audio: { perMinute: 0 },
+      video: { perMinute: 0 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "claude-3-opus",
+    name: "Claude 3 Opus",
+    provider: "Anthropic",
+    modalities: ["text", "image"],
+    pricing: {
+      text: { inputPer1M: 15, outputPer1M: 75 },
+      image: { inputPer1M: 15 },
+      audio: { perMinute: 0 },
+      video: { perMinute: 0 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "claude-3-5-sonnet",
+    name: "Claude 3.5 Sonnet",
+    provider: "Anthropic",
+    modalities: ["text", "image"],
+    pricing: {
+      text: { inputPer1M: 3, outputPer1M: 15 },
+      image: { inputPer1M: 3 },
+      audio: { perMinute: 0 },
+      video: { perMinute: 0 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "claude-3-haiku",
+    name: "Claude 3 Haiku",
+    provider: "Anthropic",
+    modalities: ["text", "image"],
+    pricing: {
+      text: { inputPer1M: 0.25, outputPer1M: 1.25 },
+      image: { inputPer1M: 0.25 },
+      audio: { perMinute: 0 },
+      video: { perMinute: 0 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "gemini-1-5-pro",
+    name: "Gemini 1.5 Pro",
+    provider: "Google",
+    modalities: ["text", "image", "audio", "video"],
+    pricing: {
+      text: { inputPer1M: 1.25, outputPer1M: 5 },
+      image: { inputPer1M: 1.25 },
+      audio: { perMinute: 0.005 },
+      video: { perMinute: 0.005 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "gemini-1-5-flash",
+    name: "Gemini 1.5 Flash",
+    provider: "Google",
+    modalities: ["text", "image", "audio", "video"],
+    pricing: {
+      text: { inputPer1M: 0.075, outputPer1M: 0.3 },
+      image: { inputPer1M: 0.075 },
+      audio: { perMinute: 0.0005 },
+      video: { perMinute: 0.0005 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+  {
+    id: "whisper",
+    name: "Whisper",
+    provider: "OpenAI",
+    modalities: ["audio"],
+    pricing: {
+      text: { inputPer1M: 0, outputPer1M: 0 },
+      image: { inputPer1M: 0 },
+      audio: { perMinute: 0.006 },
+      video: { perMinute: 0 },
+    },
+    enabled: true,
+    builtin: true,
+  },
+];

@@ -32,7 +32,7 @@ export function ModelSelector({ models, value, onChange }: ModelSelectorProps) {
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none bg-obs-card border border-obs-border hover:border-obs-borderHi rounded-lg pl-4 pr-10 py-3 text-sm font-display font-semibold text-ink input-glow cursor-pointer transition-colors"
+          className="w-full appearance-none bg-transparent border-0 rounded-lg pl-4 pr-10 py-3 text-sm font-display font-semibold text-ink cursor-pointer transition-colors outline-none focus:ring-2 focus:ring-cyan/30 focus:ring-offset-0"
         >
           {models.map((m) => (
             <option key={m.id} value={m.id} className="bg-obs-panel text-ink">

@@ -81,7 +81,13 @@ export default function Models() {
             </thead>
             <tbody className="divide-y divide-obs-border">
               {models.map((m) => (
-                <tr key={m.id} className="hover:bg-obs-panel/30 transition-colors">
+                <tr
+                  key={m.id}
+                  className={cn(
+                    "transition-colors",
+                    m.enabled ? "hover:bg-obs-panel/30" : "bg-obs-panel/20 hover:bg-obs-panel/30"
+                  )}
+                >
                   <td className="px-4 py-3">
                     <div className="font-display font-semibold text-ink">{m.name}</div>
                     <div className="text-[10px] font-mono text-ink-dim mt-0.5">
@@ -129,16 +135,22 @@ export default function Models() {
                   </td>
                   <td className="px-4 py-3">
                     <button
+                      role="switch"
+                      aria-checked={m.enabled}
+                      aria-label={m.enabled ? "停止模型" : "启用模型"}
                       onClick={() => toggleEnabled(m.id)}
                       className={cn(
-                        "block mx-auto w-10 h-5 rounded-full relative transition-colors",
-                        m.enabled ? "bg-cyan/80" : "bg-obs-border"
+                        "block mx-auto w-11 h-6 rounded-full relative transition-colors cursor-pointer",
+                        "focus-visible:outline-2 focus-visible:outline-cyan focus-visible:outline-offset-1",
+                        m.enabled
+                          ? "bg-cyan/80 hover:bg-cyan"
+                          : "bg-obs-border hover:bg-obs-borderHi"
                       )}
                     >
                       <span
                         className={cn(
-                          "absolute top-0.5 w-4 h-4 rounded-full bg-obs-bg transition-transform",
-                          m.enabled ? "translate-x-5" : "translate-x-0.5"
+                          "absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200",
+                          m.enabled ? "translate-x-5" : "translate-x-0"
                         )}
                       />
                     </button>

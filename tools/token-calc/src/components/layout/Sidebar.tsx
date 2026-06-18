@@ -31,9 +31,9 @@ export function Sidebar() {
 
       {/* 导航 */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        <div className="px-3 pb-2 text-[10px] font-mono uppercase tracking-wider text-ink-dim">
+        {/* <div className="px-3 pb-2 text-[10px] font-mono uppercase tracking-wider text-ink-dim">
           Navigation
-        </div>
+        </div> */}
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
@@ -73,7 +73,7 @@ export function Sidebar() {
       <div className="px-5 py-4 border-t border-obs-border">
         <div className="flex items-center gap-2 text-[10px] font-mono text-ink-dim">
           <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse-glow" />
-          <span>LOCAL · NO NETWORK</span>
+          <span>LOCAL · Q-Quick</span>
         </div>
         <div className="mt-1 text-[10px] text-ink-dim/70">
           所有计算在浏览器本地完成

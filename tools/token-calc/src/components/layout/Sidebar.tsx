@@ -72,11 +72,11 @@ export function Sidebar() {
       {/* 底部状态 */}
       <div className="px-5 py-4 border-t border-obs-border">
         <div className="flex items-center gap-2 text-[10px] font-mono text-ink-dim">
-          <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse-glow" />
-          <span>LOCAL · Q-Quick</span>
+          {/* <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse-glow" /> */}
+          <span>TokenLab Observatory</span>
         </div>
         <div className="mt-1 text-[10px] text-ink-dim/70">
-          所有计算在浏览器本地完成
+          Token 计算器 · 出品：Q-Quick
         </div>
       </div>
     </aside>

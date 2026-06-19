@@ -16,7 +16,7 @@ export function Sidebar() {
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-cyan/20 to-amber/10 border border-cyan/30 flex items-center justify-center shadow-glow">
             <Telescope size={20} className="text-cyan" />
-            <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan animate-pulse-glow" />
+            {/* <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan animate-pulse-glow" /> */}
           </div>
           <div>
             <div className="font-display font-bold text-ink text-base leading-tight">
@@ -72,7 +72,7 @@ export function Sidebar() {
       {/* 底部状态 */}
       <div className="px-5 py-4 border-t border-obs-border">
         <div className="flex items-center gap-2 text-[10px] font-mono text-ink-dim">
-          {/* <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse-glow" /> */}
+          <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse-glow" />
           <span>TokenLab Observatory</span>
         </div>
         <div className="mt-1 text-[10px] text-ink-dim/70">

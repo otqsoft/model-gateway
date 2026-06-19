@@ -33,6 +33,7 @@ export default function Models() {
   const [editing, setEditing] = useState<ModelConfig | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [deleting, setDeleting] = useState<ModelConfig | null>(null);
 
   return (
     <div>
@@ -41,14 +42,14 @@ export default function Models() {
         subtitle="配置常用大模型的模态支持与计费规则。内置模型不可删除，可自定义新增模型。"
         actions={
           <>
-            <Button
+            {/* <Button
               variant="ghost"
               size="sm"
               icon={<RotateCcw size={14} />}
               onClick={() => setConfirmReset(true)}
             >
               重置
-            </Button>
+            </Button> */}
             <Button
               variant="primary"
               size="sm"
@@ -165,7 +166,7 @@ export default function Models() {
                       </button>
                       {!m.builtin && (
                         <button
-                          onClick={() => removeModel(m.id)}
+                          onClick={() => setDeleting(m)}
                           className="px-2 py-1 rounded text-[11px] font-mono text-warn hover:bg-warn/10 transition-colors"
                         >
                           删除
@@ -225,6 +226,33 @@ export default function Models() {
       >
         <p className="text-sm text-ink-muted">
           此操作将丢弃所有自定义模型与修改，恢复为内置模型库。是否继续？
+        </p>
+      </Modal>
+
+      {/* 删除确认 */}
+      <Modal
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title="删除模型"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleting(null)}>
+              取消
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (deleting) removeModel(deleting.id);
+                setDeleting(null);
+              }}
+            >
+              确认删除
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-ink-muted">
+          确定要删除模型「{deleting?.name}」吗？{deleting?.builtin && "该模型为内置模型，删除后可通过「重置」恢复。"}此操作不可撤销。
         </p>
       </Modal>
     </div>

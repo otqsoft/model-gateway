@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Download, History, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { useHistoryStore } from "@/store/useHistoryStore";
 import { formatCost, formatTokens } from "@/lib/costCalc";
 
@@ -11,6 +12,8 @@ export default function HistoryPage() {
   const removeRecord = useHistoryStore((s) => s.removeRecord);
   const clearAll = useHistoryStore((s) => s.clearAll);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const totals = useMemo(() => {
     return records.reduce(
@@ -67,7 +70,7 @@ export default function HistoryPage() {
               variant="danger"
               size="sm"
               icon={<Trash2 size={14} />}
-              onClick={clearAll}
+              onClick={() => setConfirmClear(true)}
               disabled={records.length === 0}
             >
               清空
@@ -185,7 +188,7 @@ export default function HistoryPage() {
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           <button
-                            onClick={() => removeRecord(r.id)}
+                            onClick={() => setDeletingId(r.id)}
                             className="w-6 h-6 rounded flex items-center justify-center text-ink-dim hover:text-warn hover:bg-warn/10 transition-colors"
                           >
                             <Trash2 size={12} />
@@ -202,6 +205,56 @@ export default function HistoryPage() {
         </>
         )}
       </div>
+
+      {/* 删除单条确认 */}
+      <Modal
+        open={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        title="删除记录"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeletingId(null)}>
+              取消
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (deletingId) removeRecord(deletingId);
+                setDeletingId(null);
+              }}
+            >
+              确认删除
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-ink-muted">确定要删除该条历史记录吗？此操作不可撤销。</p>
+      </Modal>
+
+      {/* 清空全部确认 */}
+      <Modal
+        open={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        title="清空历史记录"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmClear(false)}>
+              取消
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                clearAll();
+                setConfirmClear(false);
+              }}
+            >
+              确认清空
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-ink-muted">确定要清空所有历史记录吗？此操作不可撤销。</p>
+      </Modal>
     </div>
   );
 }

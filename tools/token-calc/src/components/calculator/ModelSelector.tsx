@@ -52,10 +52,24 @@ export function ModelSelector({ models, value, onChange }: ModelSelectorProps) {
         )}
       >
         <span>{current ? current.name : "选择模型"}</span>
-        <ChevronDown
-          size={16}
-          className={cn("text-ink-dim transition-transform duration-200", open && "rotate-180")}
-        />
+        <div className="flex items-center gap-1.5">
+          {current && current.modalities.map((mod) => {
+            const Icon = MODALITY_ICONS[mod];
+            return (
+              <span
+                key={mod}
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border border-obs-borderHi text-ink-dim"
+              >
+                <Icon size={9} />
+                {MODALITY_LABELS[mod]}
+              </span>
+            );
+          })}
+          <ChevronDown
+            size={16}
+            className={cn("text-ink-dim transition-transform duration-200", open && "rotate-180")}
+          />
+        </div>
       </button>
 
       {open && (

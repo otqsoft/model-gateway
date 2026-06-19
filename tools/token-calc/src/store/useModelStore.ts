@@ -123,7 +123,7 @@ export const useModelStore = create<ModelState>((set, get) => ({
 
   removeModel: (id) => {
     set((s) => {
-      const next = s.models.filter((m) => !(m.id === id && !m.builtin));
+      const next = s.models.filter((m) => m.id !== id);
       saveJSON(STORAGE_KEYS.models, next);
       return { models: next };
     });

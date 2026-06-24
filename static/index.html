@@ -1092,7 +1092,9 @@ input:checked + .slider:before{
     <!-- ══════════ PAGE: BILLING ══════════ -->
     <div class="page" id="page-billing">
       <div class="section-hd">
-        <div class="section-title">费用统计</div>
+        <div class="section-title">费用统计
+          <a href="http://otqsoft.com/token-lab/" target="_blank" title="打开 Token Lab" style="margin-left:8px;font-size:16px;opacity:.55;text-decoration:none;vertical-align:middle;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity='.55'">🔗</a>
+        </div>
         <div style="display:flex;gap:10px;align-items:center">
           <span style="font-size:13px;color:var(--text-secondary)">分组方式：</span>
           <select class="form-select" id="billing-group" style="width:160px" onchange="loadBilling()">

@@ -100,7 +100,7 @@ uv run python main.py
 ```
 
 服务就绪后：
-- 管理后台：`http://localhost:8086/ui/`
+- 管理后台：`http://localhost:8086/`
 - API 文档：`http://localhost:8086/docs`
 - 健康检查：`http://localhost:8086/health`
 

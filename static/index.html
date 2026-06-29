@@ -943,8 +943,23 @@ input:checked + .slider:before{
           </div>
         </div>
         <div class="card">
-          <div class="card-title"><span>⏱ Timeout 热点</span></div>
-          <div id="timeout-hotspot">
+          <div class="card-title"><span>🏆 模型调用次数排名</span></div>
+          <div id="model-rank-calls">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card">
+          <div class="card-title"><span>💰 模型消耗费用排名</span></div>
+          <div id="model-rank-cost">
+            <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>🔢 模型消耗Token排名</span></div>
+          <div id="model-rank-tokens">
             <div style="color:var(--text-muted);text-align:center;padding:20px">加载中...</div>
           </div>
         </div>
@@ -1997,12 +2012,16 @@ async function loadMonitor(){
     renderUpstreamDist(ud);
   }catch(e){}
 
-  // error & timeout hotspot - derive from logs
+  // error hotspot - derive from logs
   try{
     const errlogs=await api('GET','/admin/logs?status=error&page_size=20');
     renderHotspot('error-hotspot',errlogs.items,'error');
-    const tologs=await api('GET','/admin/logs?status=timeout&page_size=20');
-    renderHotspot('timeout-hotspot',tologs.items,'timeout');
+  }catch(e){}
+
+  // model ranking
+  try{
+    const bModel=await api('GET','/admin/billing?group_by=model_alias');
+    renderModelRanking(bModel.items||[]);
   }catch(e){}
 }
 
@@ -2100,6 +2119,33 @@ function renderHotspot(elId,items,type){
       </div>
       <div class="progress"><div class="progress-bar" style="width:${v/total*100}%;background:${type==='error'?'var(--accent-red)':'var(--accent-orange)'}"></div></div>
     </div>`).join('');
+}
+
+function renderModelRanking(items){
+  const top=8;
+  const rankColors=['#fbbf24','#a1a1aa','#cd7f32','var(--accent-blue)','var(--accent-blue)','var(--text-secondary)','var(--text-secondary)','var(--text-secondary)'];
+  function renderOne(elId,sorted,valFn,fmtFn,color){
+    const el=document.getElementById(elId);
+    if(!items.length){el.innerHTML='<div style="color:var(--text-muted);text-align:center;padding:20px">暂无数据</div>';return;}
+    const total=sorted.reduce((s,i)=>s+valFn(i),0);
+    el.innerHTML=sorted.slice(0,top).map((r,i)=>{
+      const v=valFn(r);
+      const pct=total>0?(v/total*100):0;
+      return `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="width:20px;height:20px;border-radius:4px;background:${i<3?rankColors[i]:'var(--bg-card2)'};color:${i<3?'#000':'var(--text-secondary)'};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.model_alias||'—'}</span>
+        <span style="color:${color};font-size:12px;font-weight:600;min-width:70px;text-align:right">${fmtFn(v)}</span>
+        <div class="progress" style="width:60px"><div class="progress-bar" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
+      </div>`;
+    }).join('');
+  }
+  const byCalls=[...items].sort((a,b)=>(b.total_requests||0)-(a.total_requests||0));
+  const byCost=[...items].sort((a,b)=>(b.total_cost||0)-(a.total_cost||0));
+  const byTokens=[...items].sort((a,b)=>(b.total_tokens||0)-(a.total_tokens||0));
+  renderOne('model-rank-calls',byCalls,r=>r.total_requests||0,v=>fmtNum(v),'var(--accent-blue)');
+  renderOne('model-rank-cost',byCost,r=>r.total_cost||0,v=>'¥'+v.toFixed(4),'var(--accent-orange)');
+  renderOne('model-rank-tokens',byTokens,r=>r.total_tokens||0,v=>fmtToken(v),'var(--accent-teal)');
 }
 
 function renderStatusDist(data){

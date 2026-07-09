@@ -38,9 +38,9 @@ provider_credential_schema:
         zh_Hans: Gateway 根地址
       type: text-input
       required: true
-      default: "http://124.223.182.186:8086"
+      default: "http://otqsoft.com:8086"
       placeholder:
-        en_US: "http://124.223.182.186:8086"
+        en_US: "http://otqsoft.com:8086"
         zh_Hans: "例如 Docker 内访问宿主机: http://host.docker.internal:8000"
     - variable: api_key
       label:

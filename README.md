@@ -363,6 +363,8 @@ server {
         <td><img src="static/images/c6.png"/></td>
     </tr>
 </table>
+
+
 ### Dify 中使用
 
 <table>

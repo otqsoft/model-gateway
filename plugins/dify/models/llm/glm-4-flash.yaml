@@ -3,8 +3,7 @@ label:
   en_US: GLM-4-Flash
   zh_Hans: GLM-4-Flash
 model_type: llm
-features:
-  - stream
+features: []
 model_properties:
   mode: chat
   context_size: 131072

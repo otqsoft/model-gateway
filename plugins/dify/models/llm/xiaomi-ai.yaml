@@ -3,8 +3,7 @@ label:
   en_US: Xiaomi AI
   zh_Hans: 小米 AI
 model_type: llm
-features:
-  - stream
+features: []
 model_properties:
   mode: chat
   context_size: 131072

@@ -2,7 +2,7 @@
 # 旧版 type: model 单文件 manifest 在新版 Dify 中会导致安装/解析失败（PluginDecodeResponse 等）。
 version: 1.0.0
 type: plugin
-author: model_gateway
+author: otqsoft
 name: model_gateway
 created_at: "2026-05-08T00:00:00Z"
 description:

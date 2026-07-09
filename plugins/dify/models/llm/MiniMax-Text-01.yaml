@@ -3,8 +3,7 @@ label:
   en_US: MiniMax Text
   zh_Hans: MiniMax Text
 model_type: llm
-features:
-  - stream
+features: []
 model_properties:
   mode: chat
   context_size: 131072

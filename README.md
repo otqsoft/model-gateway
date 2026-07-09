@@ -347,7 +347,7 @@ server {
 }
 ```
 
-### Cherry Studio 中调用
+### Cherry Studio 中使用
 
 <table>
     <tr>
@@ -363,6 +363,20 @@ server {
         <td><img src="static/images/c6.png"/></td>
     </tr>
 </table>
+### Dify 中使用
+
+<table>
+    <tr>
+        <td><img src="static/images/d1.png"/></td>
+        <td><img src="static/images/d2.png"/></td>
+    </tr>
+    <tr>
+        <td><img src="static/images/d3.png"/></td>
+        <td><img src="static/images/d4.png"/></td>
+    </tr>
+</table>
+
+
 
 
 

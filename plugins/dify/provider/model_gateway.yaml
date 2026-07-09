@@ -15,8 +15,8 @@ help:
     en_US: model-gateway documentation
     zh_Hans: model-gateway 说明
   url:
-    en_US: https://github.com/model-gateway/model-gateway
-    zh_Hans: https://github.com/model-gateway/model-gateway
+    en_US: https://github.com/otqsoft/model-gateway
+    zh_Hans: https://github.com/otqsoft/model-gateway
 icon_large:
   en_US: icon_l_en.svg
 icon_small:

@@ -6,8 +6,8 @@ author: otqsoft
 name: model_gateway
 created_at: "2026-05-08T00:00:00Z"
 description:
-  en_US: Unified LLM gateway — use models exposed by model-gateway (OpenAI-compatible API).
-  zh_Hans: 统一大模型网关 — 通过 model-gateway 提供的 OpenAI 兼容接口使用已配置的模型。
+  en_US: use models exposed by model-gateway (OpenAI-compatible API).
+  zh_Hans: 通过 model-gateway 提供的 OpenAI 兼容接口使用已配置的模型。
 label:
   en_US: Model Gateway
   zh_Hans: 模型网关

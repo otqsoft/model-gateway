@@ -90,7 +90,7 @@ zip -r model-gateway-plugin.zip manifest.yaml main.py pyproject.toml _assets pro
 
 ### 方式二：官方 CLI 打包（推荐与 Dify 文档一致）
 
-安装 Dify 提供的 **`dify-plugin` CLI** 后，在本目录执行打包生成 `.difypkg`，再于控制台上传（具体命令以你使用的 Dify 版本文档为准）。
+安装 Dify 提供的 **`dify-plugin` CLI** 后，在本目录执行打包生成 `.difypkg`，再于控制台上传（具体命令以你使用的 Dify 版本文档为准）（如：dify-plugin plugin package ./dify）
 
 ### 方式三：复制到 Dify 插件目录
 

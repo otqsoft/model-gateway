@@ -16,22 +16,31 @@ async def authenticate_request(request: Request) -> ApiKeyRow:
     """
     FastAPI 依赖项：从请求头提取并验证 API Key
     返回 ApiKeyRow 供后续中间件使用
+
+    支持两种认证头：
+    - OpenAI 风格：  Authorization: Bearer <key>
+    - Anthropic 风格：x-api-key: <key>
     """
     auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
+    x_api_key = request.headers.get("x-api-key", "")
+
+    if auth_header.startswith("Bearer "):
+        raw_key = auth_header[7:].strip()
+    elif x_api_key:
+        raw_key = x_api_key.strip()
+    else:
         raise HTTPException(
             status_code=401,
             detail={
                 "error": {
-                    "message": "Missing or invalid Authorization header. "
-                               "Use 'Authorization: Bearer <your-key>'",
+                    "message": "Missing authentication. Use either "
+                               "'Authorization: Bearer <key>' or 'x-api-key: <key>'",
                     "type": "auth_error",
                     "code": "missing_auth",
                 }
             },
         )
 
-    raw_key = auth_header[7:].strip()
     if not raw_key:
         raise HTTPException(
             status_code=401,

@@ -13,7 +13,7 @@
 </div>
 
 
-多平台大模型统一网关，完全兼容 OpenAI v1 接口，支持 DeepSeek、MiniMax、GLM、小米、SiliconFlow、ModelScope、Coze、Dify 等 8 家平台，附带限流、计费、时段控制和完整的请求追踪。
+多平台大模型统一网关，完全兼容 OpenAI v1 接口和 Anthropic Messages API，支持 DeepSeek、MiniMax、GLM、小米、SiliconFlow、ModelScope、Coze、Dify 等 8 家平台，附带限流、计费、时段控制和完整的请求追踪。
 
 
 
@@ -22,6 +22,7 @@
 | 功能 | 说明 |
 |------|------|
 | **OpenAI 兼容** | `/v1/chat/completions` / `/v1/models`，任何 OpenAI 客户端直连 |
+| **Anthropic 兼容** | `/v1/messages` 端点，支持 `x-api-key` 认证、content blocks、流式 SSE 事件、工具调用 |
 | **多平台统一接入** | DeepSeek / MiniMax / GLM / 小米 / SiliconFlow / ModelScope / Coze / Dify |
 | **智能体支持** | `agent:xxx` 模型别名，每个智能体独立 API Key、Bot ID |
 | **三级限流** | 全局 / 按 Key / 按厂商，互不影响 |
@@ -178,6 +179,95 @@ curl http://localhost:8086/v1/chat/completions \
 ```
 
 > 模型别名 `agent:xxx` 触发智能体路由，从 `agent_configs` 表取该智能体专属的 API Key 和 Bot ID。
+
+### Anthropic 兼容调用（/v1/messages）
+
+网关同时兼容 Anthropic Messages API，可直接用 Anthropic SDK 或 Claude 客户端调用任意已接入的模型。
+
+**认证方式**（任选其一）：
+- `x-api-key: sk-gw-xxxxx`（Anthropic 风格）
+- `Authorization: Bearer sk-gw-xxxxx`（OpenAI 风格）
+
+**非流式调用**：
+
+```bash
+curl http://localhost:8086/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: sk-gw-xxxxx" \
+  -d '{
+    "model": "glm-4-flash",
+    "max_tokens": 1024,
+    "system": "你是一个有用的助手",
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+```
+
+**流式调用**：
+
+```bash
+curl http://localhost:8086/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: sk-gw-xxxxx" \
+  -d '{
+    "model": "glm-4-flash",
+    "max_tokens": 1024,
+    "stream": true,
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+```
+
+**工具调用**：
+
+```bash
+curl http://localhost:8086/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: sk-gw-xxxxx" \
+  -d '{
+    "model": "deepseek-chat",
+    "max_tokens": 1024,
+    "tools": [{
+      "name": "get_weather",
+      "description": "获取指定城市的天气",
+      "input_schema": {
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"]
+      }
+    }],
+    "messages": [{"role": "user", "content": "北京天气怎么样？"}]
+  }'
+```
+
+**Python（Anthropic SDK）**：
+
+```python
+from anthropic import Anthropic
+
+client = Anthropic(
+    base_url="http://localhost:8086",
+    api_key="sk-gw-xxxxx",
+)
+
+response = client.messages.create(
+    model="glm-4-flash",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(response.content[0].text)
+```
+
+**支持的能力**：
+
+| 能力 | 说明 |
+|------|------|
+| 系统提示词 | `system` 字段（字符串或带 cache_control 的数组）|
+| 流式响应 | 标准 Anthropic SSE 事件序列（message_start / content_block_start / content_block_delta / content_block_stop / message_delta / message_stop）|
+| 工具调用 | `tools` / `tool_choice` / `tool_use` / `tool_result` 完整链路 |
+| 多模态 | `image` blocks（base64 / url 两种来源）|
+| 停止序列 | `stop_sequences` 字段 |
+| 错误格式 | 标准 Anthropic 错误结构 `{type: "error", error: {type, message}}` |
+
+> Anthropic 接口底层复用 OpenAI 路由逻辑，自动享受限流、计费、日志追踪等所有特性，无需额外配置。
 
 
 

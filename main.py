@@ -35,6 +35,16 @@ async def lifespan(app: FastAPI):
     logger.info("=== AI Model Gateway 关闭中 ===")
     await close_db_pool()
 
+try:
+    # 接入 SkyWalking
+    from skywalking import agent, config
+    config.init(
+        service_name="model-gateway",
+        collector_backend_services="127.0.0.1:11800"
+    )
+    agent.start()
+except Exception as e:
+    logger.error("SkyWalking 初始化失败: %s", e)
 
 # ── 创建 FastAPI 应用 ─────────────────────────────────────────
 app = FastAPI(
@@ -72,10 +82,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 from api.v1.chat import router as chat_router
 from api.v1.models_list import router as models_router
 from api.v1.vision import router as vision_router
+from api.v1.anthropic import router as anthropic_router
 
 app.include_router(chat_router)
 app.include_router(models_router)
 app.include_router(vision_router)
+app.include_router(anthropic_router)
 
 # 管理端接口
 from api.admin.overview import router as overview_router

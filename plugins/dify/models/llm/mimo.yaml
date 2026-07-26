@@ -1,7 +1,7 @@
-model: MiniMax-Text-01
+model: mimo
 label:
-  en_US: MiniMax Text
-  zh_Hans: MiniMax Text
+  en_US: Xiaomi AI
+  zh_Hans: 小米 AI
 model_type: llm
 features: []
 model_properties:

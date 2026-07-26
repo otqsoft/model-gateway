@@ -30,6 +30,8 @@ class ModelGatewayLargeLanguageModel(OAICompatLargeLanguageModel):
     ) -> Union[LLMResult, Generator]:
         self._add_custom_parameters(credentials)
         self._add_function_call(model, credentials)
+        # 根据界面设置处理思考模式（默认不开启）
+        self._apply_thinking_mode(credentials, model_parameters)
         return super()._invoke(
             model,
             credentials,
@@ -40,6 +42,26 @@ class ModelGatewayLargeLanguageModel(OAICompatLargeLanguageModel):
             stream,
             user,
         )
+
+    @staticmethod
+    def _apply_thinking_mode(credentials: dict, model_parameters: dict) -> None:
+        """
+        根据界面上的 thinking_mode 设置控制思考模式。
+        参数注入到 model_parameters 中，SDK 会通过 **model_parameters
+        将其展开到 HTTP 请求体里。（credentials["extra_body"] 不会被 SDK 使用）
+        """
+        thinking_mode = bool(model_parameters.pop("thinking_mode", False))
+
+        if thinking_mode:
+            model_parameters["enable_thinking"] = True
+            model_parameters["thinking"] = {"type": "enabled"}
+            model_parameters["reasoning"] = True
+            logger.debug("thinking_mode=True, model_parameters=%s", model_parameters)
+        else:
+            model_parameters["enable_thinking"] = False
+            model_parameters["thinking"] = {"type": "disabled"}
+            model_parameters["reasoning"] = False
+            logger.debug("thinking_mode=False, model_parameters=%s", model_parameters)
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
         self._add_custom_parameters(credentials)

@@ -17,3 +17,12 @@ parameter_rules:
     use_template: max_tokens
   - name: top_p
     use_template: top_p
+  - name: thinking_mode
+    type: boolean
+    default: false
+    label:
+      en_US: Thinking Mode
+      zh_Hans: 思考模式
+    help:
+      en_US: Enable reasoning/thinking mode for the model
+      zh_Hans: 启用模型的思考/推理模式

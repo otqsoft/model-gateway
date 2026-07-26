@@ -1,6 +1,6 @@
 # Dify 插件 Manifest（新版）：须为 type: plugin，并与 main.py / pyproject.toml 配套。
 # 旧版 type: model 单文件 manifest 在新版 Dify 中会导致安装/解析失败（PluginDecodeResponse 等）。
-version: 1.0.1
+version: 1.0.2
 type: plugin
 author: otqsoft
 name: model_gateway

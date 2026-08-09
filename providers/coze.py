@@ -47,8 +47,117 @@ class CozeProvider(BaseProvider):
         if request.stream:
             return self._stream_coze(url, headers, body, self.bot_id)
         else:
-            data, _ = await self._do_non_stream(url, headers, body)
-            return self._parse_non_stream_response(data, self.bot_id)
+            return await self._non_stream_coze(url, headers, body, self.bot_id)
+
+    async def _non_stream_coze(
+        self, url: str, headers: dict, body: dict, model: str
+    ) -> ChatCompletionResponse:
+        """
+        Coze 非流式响应需要轮询：
+        1. POST /v3/chat 创建对话 → 返回 chat_id, conversation_id, status=in_progress
+        2. 轮询 GET /v3/chat/retrieve 直到 status=completed
+        3. GET /v3/chat/message/list 获取消息列表
+        4. 解析 assistant 回复和 usage
+        """
+        import asyncio
+        import aiohttp
+
+        timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
+
+        # 1. 创建对话
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, json=body, headers=headers) as resp:
+                if resp.status != 200:
+                    err_body = await resp.text()
+                    raise ProviderException(
+                        f"Coze 上游返回 {resp.status}: {err_body[:300]}",
+                        status_code=502,
+                        upstream_status=resp.status,
+                    )
+                create_data = await resp.json(content_type=None)
+
+            code = create_data.get("code")
+            if code != 0 and code is not None:
+                msg = create_data.get("msg", str(create_data))
+                raise ProviderException(f"Coze API 错误: {msg}", status_code=502, upstream_status=0)
+
+            chat_info = create_data.get("data", {})
+            chat_id = chat_info.get("id", "")
+            conversation_id = chat_info.get("conversation_id", "")
+            status = chat_info.get("status", "in_progress")
+
+            logger.info("Coze 非流式创建对话: chat_id=%s, conversation_id=%s, status=%s",
+                        chat_id, conversation_id, status)
+
+            # 2. 轮询直到 completed（最多 30 次，每次间隔 1 秒）
+            poll_count = 0
+            max_poll = 30
+            while status == "in_progress" and poll_count < max_poll:
+                await asyncio.sleep(1)
+                poll_count += 1
+                retrieve_url = "https://api.coze.cn/v3/chat/retrieve"
+                params = {"chat_id": chat_id, "conversation_id": conversation_id}
+                async with session.get(retrieve_url, params=params, headers=headers) as r:
+                    if r.status != 200:
+                        err_body = await r.text()
+                        raise ProviderException(
+                            f"Coze 轮询失败 {r.status}: {err_body[:300]}",
+                            status_code=502,
+                            upstream_status=r.status,
+                        )
+                    retrieve_data = await r.json(content_type=None)
+
+                retrieve_info = retrieve_data.get("data", {})
+                status = retrieve_info.get("status", "in_progress")
+                logger.info("Coze 轮询 #%d: status=%s", poll_count, status)
+
+                if status == "failed" or status == "error":
+                    err_msg = retrieve_info.get("last_error", {}).get("msg", "Coze 对话失败")
+                    raise ProviderException(f"Coze 对话失败: {err_msg}", status_code=502)
+
+            if status != "completed":
+                raise ProviderException(
+                    f"Coze 对话超时，最终状态: {status}",
+                    status_code=504,
+                    upstream_status=0,
+                )
+
+            # 3. 获取消息列表
+            msg_url = "https://api.coze.cn/v3/chat/message/list"
+            params = {"chat_id": chat_id, "conversation_id": conversation_id}
+            async with session.get(msg_url, params=params, headers=headers) as r:
+                if r.status != 200:
+                    err_body = await r.text()
+                    raise ProviderException(
+                        f"Coze 获取消息失败 {r.status}: {err_body[:300]}",
+                        status_code=502,
+                        upstream_status=r.status,
+                    )
+                msg_data = await r.json(content_type=None)
+
+            # 4. 再次 retrieve 获取 usage（completed 状态下包含 usage）
+            usage_data = {}
+            if status == "completed":
+                retrieve_url = "https://api.coze.cn/v3/chat/retrieve"
+                params = {"chat_id": chat_id, "conversation_id": conversation_id}
+                async with session.get(retrieve_url, params=params, headers=headers) as r:
+                    if r.status == 200:
+                        retrieve_data = await r.json(content_type=None)
+                        retrieve_info = retrieve_data.get("data", {})
+                        usage_data = retrieve_info.get("usage", {}) or {}
+
+            # 合并消息和 usage，构造兼容旧解析逻辑的数据结构
+            merged_data = {
+                "data": {
+                    "messages": msg_data.get("data", []),
+                    "chat": {"usage": usage_data},
+                    "usage": usage_data,
+                }
+            }
+            logger.info("Coze 非流式完成: messages=%d, usage=%s",
+                        len(merged_data["data"]["messages"]), usage_data)
+
+            return self._parse_non_stream_response(merged_data, model)
 
     def _coze_request_body(self, request: ChatCompletionRequest, bot_id: str) -> dict:
         """OpenAI 格式 → Coze API 格式"""
@@ -342,7 +451,7 @@ class CozeProvider(BaseProvider):
                                 full_content += msg_content
                                 choice = {
                                     "index": idx,
-                                    "delta": event_data, # {"content": msg_content},
+                                    "delta": {"content": msg_content},
                                     "finish_reason": None,
                                 }
                                 chunk = {

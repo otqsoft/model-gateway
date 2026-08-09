@@ -44,6 +44,11 @@ class MiniMaxProvider(BaseProvider):
             body["top_p"] = request.top_p
         if request.max_tokens is not None:
             body["max_tokens"] = request.max_tokens
+        # 思考模式：默认不开启，仅当显式开启时注入参数
+        if request.thinking_mode:
+            body["enable_thinking"] = True
+            body["thinking"] = {"type": "enabled"}
+            body["reasoning"] = True
         return body
 
     async def chat_completion(

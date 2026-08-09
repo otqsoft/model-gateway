@@ -32,8 +32,8 @@ async def batch_create_external_usage(
         tt = item.get("total_tokens", pt + ct)
         ip = item.get("input_price", 0.0)
         op = item.get("output_price", 0.0)
-        ic = pt / 1000.0 * ip
-        oc = ct / 1000.0 * op
+        ic = pt / 1_000_000.0 * ip
+        oc = ct / 1_000_000.0 * op
         tc = ic + oc
 
         total_prompt += pt

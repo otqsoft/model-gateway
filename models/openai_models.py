@@ -39,6 +39,8 @@ class ChatCompletionRequest(BaseModel):
     tool_choice: Optional[Union[str, dict]] = None
     response_format: Optional[dict] = None
     seed: Optional[int] = None
+    # 思考模式开关：默认不开启，true 时由网关翻译为上游各厂商对应的参数
+    thinking_mode: Optional[bool] = False
 
     class Config:
         extra = "allow"  # 允许额外字段透传

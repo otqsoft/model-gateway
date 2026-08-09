@@ -504,7 +504,7 @@ body::before{
   font-weight:600;letter-spacing:1px;text-transform:uppercase;
 }
 .stat-val{
-  font-size:28px;font-weight:700;line-height:1;
+  font-size:22px;font-weight:700;line-height:1;
   font-family:'Inter',sans-serif;letter-spacing:-.5px;
 }
 .stat-sub{font-size:12px;color:var(--text-muted);margin-top:6px}
@@ -995,7 +995,7 @@ input:checked + .slider:before{
         <table>
           <thead><tr>
             <th>ID</th><th>别名(对外)</th><th>上游模型</th><th>供应商</th>
-            <th>输入价格(元/1K)</th><th>输出价格(元/1K)</th><th>多模态</th><th>状态</th><th>操作</th>
+            <th>输入价格(元/百万token)</th><th>输出价格(元/百万token)</th><th>多模态</th><th>状态</th><th>操作</th>
           </tr></thead>
           <tbody id="models-tbody">
             <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">加载中...</td></tr>
@@ -1375,12 +1375,12 @@ input:checked + .slider:before{
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">输入价格（元/1K tokens）</label>
-          <input class="form-input" type="number" step="0.0001" id="md-input-price" value="0.001">
+          <label class="form-label">输入价格（元/百万 tokens）</label>
+          <input class="form-input" type="number" step="0.01" id="md-input-price" value="1">
         </div>
         <div class="form-group">
-          <label class="form-label">输出价格（元/1K tokens）</label>
-          <input class="form-input" type="number" step="0.0001" id="md-output-price" value="0.002">
+          <label class="form-label">输出价格（元/百万 tokens）</label>
+          <input class="form-input" type="number" step="0.01" id="md-output-price" value="2">
         </div>
       </div>
       <div class="form-group">

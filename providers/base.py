@@ -58,9 +58,23 @@ class BaseProvider(ABC):
         """
         构建上游请求体，默认直接使用 OpenAI 格式。
         子类可覆盖此方法做字段适配。
+
+        思考模式处理：
+        - thinking_mode=True 时注入 enable_thinking / thinking / reasoning，
+          覆盖 GLM / DeepSeek / 通义等模型多种控制方式
+        - thinking_mode=False / 未设置时不注入任何参数，使用上游默认行为（默认不开启）
         """
         body = request.model_dump(exclude_none=True, exclude={"model"})
         body["model"] = upstream_model
+
+        # 思考模式翻译：从 body 中移除 thinking_mode，按需注入上游参数
+        thinking_mode = bool(body.pop("thinking_mode", False))
+        if thinking_mode:
+            body["enable_thinking"] = True
+            body["thinking"] = {"type": "enabled"}
+            body["reasoning"] = True
+            logger.debug("[%s] thinking_mode=True, injected thinking params", upstream_model)
+
         return body
 
     @abstractmethod

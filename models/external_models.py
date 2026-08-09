@@ -16,8 +16,8 @@ class ExternalUsageItem(BaseModel):
     prompt_tokens: int = Field(default=0, ge=0)
     completion_tokens: int = Field(default=0, ge=0)
     total_tokens: int = Field(default=0, ge=0)
-    input_price: float = Field(default=0.0, ge=0, description="输入单价（元/1K tokens）")
-    output_price: float = Field(default=0.0, ge=0, description="输出单价（元/1K tokens）")
+    input_price: float = Field(default=0.0, ge=0, description="输入单价（元/百万 tokens）")
+    output_price: float = Field(default=0.0, ge=0, description="输出单价（元/百万 tokens）")
     detail: Optional[dict] = Field(default=None, description="原始请求/响应摘要（可选）")
 
 

@@ -166,6 +166,28 @@ curl http://localhost:8086/v1/chat/completions \
   }'
 ```
 
+### 思考模式
+
+通过 `thinking_mode` 参数控制是否启用模型的思考/推理模式，**默认不开启**。
+
+```bash
+curl http://localhost:8086/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-gw-xxxxx" \
+  -d '{
+    "model": "glm-4-flash",
+    "messages": [{"role": "user", "content": "证明根号2是无理数"}],
+    "thinking_mode": true
+  }'
+```
+
+网关会自动将 `thinking_mode` 翻译为上游厂商对应的参数：
+- `enable_thinking`（GLM / 通义千问风格）
+- `thinking`（Anthropic 风格，`{"type": "enabled"}`）
+- `reasoning`（DeepSeek 风格）
+
+> 未设置或设为 `false` 时不注入任何参数，由上游模型使用其默认行为（默认即不思考）。
+
 ### 调用智能体
 
 ```bash

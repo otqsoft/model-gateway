@@ -17,10 +17,10 @@ async def create_billing_record(
     input_price: float,
     output_price: float,
 ) -> dict:
-    """创建计费记录，自动计算费用"""
+    """创建计费记录，自动计算费用（价格单位：元/百万 tokens）"""
     total_tokens = prompt_tokens + completion_tokens
-    input_cost = prompt_tokens / 1000.0 * input_price
-    output_cost = completion_tokens / 1000.0 * output_price
+    input_cost = prompt_tokens / 1_000_000.0 * input_price
+    output_cost = completion_tokens / 1_000_000.0 * output_price
     total_cost = input_cost + output_cost
 
     sql = """

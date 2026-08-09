@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `external_usage` (
   `prompt_tokens`     INT          NOT NULL DEFAULT 0 COMMENT '输入 token',
   `completion_tokens` INT          NOT NULL DEFAULT 0 COMMENT '输出 token',
   `total_tokens`      INT          NOT NULL DEFAULT 0 COMMENT '总 token',
-  `input_price`       DECIMAL(12,6)NOT NULL DEFAULT 0.000000 COMMENT '输入单价快照（元/1K tokens）',
+  `input_price`       DECIMAL(12,6)NOT NULL DEFAULT 0.000000 COMMENT '输入单价快照（元/百万 tokens）',
   `output_price`      DECIMAL(12,6)NOT NULL DEFAULT 0.000000 COMMENT '输出单价快照',
   `input_cost`        DECIMAL(14,8)NOT NULL DEFAULT 0.00000000 COMMENT '输入费用（元）',
   `output_cost`       DECIMAL(14,8)NOT NULL DEFAULT 0.00000000 COMMENT '输出费用（元）',

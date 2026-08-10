@@ -60,20 +60,38 @@ class BaseProvider(ABC):
         子类可覆盖此方法做字段适配。
 
         思考模式处理：
-        - thinking_mode=True 时注入 enable_thinking / thinking / reasoning，
-          覆盖 GLM / DeepSeek / 通义等模型多种控制方式
-        - thinking_mode=False / 未设置时不注入任何参数，使用上游默认行为（默认不开启）
+        - thinking_mode=True 或 enable_thinking=True 时注入启用信号
+        - thinking_mode=False 时注入禁用信号（某些模型默认启用思考，必须显式禁用）
         """
         body = request.model_dump(exclude_none=True, exclude={"model"})
         body["model"] = upstream_model
 
-        # 思考模式翻译：从 body 中移除 thinking_mode，按需注入上游参数
-        thinking_mode = bool(body.pop("thinking_mode", False))
-        if thinking_mode:
+        # 思考模式控制：thinking_mode 优先（来自 Dify 插件），其次 enable_thinking（来自直接 API 调用）
+        thinking_mode = body.pop("thinking_mode", None)
+        enable_thinking = body.pop("enable_thinking", None)
+        body.pop("thinking", None)
+        body.pop("reasoning", None)
+
+        # 确定是否启用思考模式
+        if thinking_mode is not None:
+            use_thinking = bool(thinking_mode)
+        elif enable_thinking is not None:
+            use_thinking = bool(enable_thinking)
+        else:
+            use_thinking = False
+
+        if use_thinking:
+            # 启用思考模式：注入所有格式的参数，兼容不同厂商
             body["enable_thinking"] = True
             body["thinking"] = {"type": "enabled"}
             body["reasoning"] = True
-            logger.debug("[%s] thinking_mode=True, injected thinking params", upstream_model)
+            logger.info("[%s] thinking=ON, injected enable params", upstream_model)
+        else:
+            # 关闭思考模式：显式发送禁用信号（某些模型默认启用思考，不传参数会导致思考仍然开启）
+            body["enable_thinking"] = False
+            body["thinking"] = {"type": "disabled"}
+            body["reasoning"] = False
+            logger.info("[%s] thinking=OFF, injected disable params", upstream_model)
 
         return body
 

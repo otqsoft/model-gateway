@@ -47,21 +47,27 @@ class ModelGatewayLargeLanguageModel(OAICompatLargeLanguageModel):
     def _apply_thinking_mode(credentials: dict, model_parameters: dict) -> None:
         """
         根据界面上的 thinking_mode 设置控制思考模式。
-        参数注入到 model_parameters 中，SDK 会通过 **model_parameters
-        将其展开到 HTTP 请求体里。（credentials["extra_body"] 不会被 SDK 使用）
+        
+        策略：
+        1. 设置 thinking_mode 作为网关的权威控制信号（网关优先检查此字段）
+        2. 同时设置 enable_thinking/thinking/reasoning 作为备用信号
+        3. 即使 SDK 覆盖了 enable_thinking，网关仍可通过 thinking_mode 正确控制
         """
         thinking_mode = bool(model_parameters.pop("thinking_mode", False))
+
+        # 始终设置 thinking_mode，作为网关的权威控制信号
+        model_parameters["thinking_mode"] = thinking_mode
 
         if thinking_mode:
             model_parameters["enable_thinking"] = True
             model_parameters["thinking"] = {"type": "enabled"}
             model_parameters["reasoning"] = True
-            logger.debug("thinking_mode=True, model_parameters=%s", model_parameters)
+            logger.info("thinking=ON, params=%s", model_parameters)
         else:
             model_parameters["enable_thinking"] = False
             model_parameters["thinking"] = {"type": "disabled"}
             model_parameters["reasoning"] = False
-            logger.debug("thinking_mode=False, model_parameters=%s", model_parameters)
+            logger.info("thinking=OFF, params=%s", model_parameters)
 
     def validate_credentials(self, model: str, credentials: dict) -> None:
         self._add_custom_parameters(credentials)

@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     app_env: str = Field("development", env="APP_ENV")
     log_level: str = Field("INFO", env="LOG_LEVEL")
 
+    # ── HTTPS / SSL ──────────────────────────────────────────
+    ssl_enabled: bool = Field(False, env="SSL_ENABLED")
+    ssl_cert_dir: str = Field("certs", env="SSL_CERT_DIR")
+    ssl_cert_file: str = Field("cert.pem", env="SSL_CERT_FILE")
+    ssl_key_file: str = Field("key.pem", env="SSL_KEY_FILE")
+
     class Config:
         env_file = ".env"
         case_sensitive = False

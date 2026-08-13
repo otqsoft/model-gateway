@@ -29,22 +29,27 @@ logger = logging.getLogger("gateway")
 async def lifespan(app: FastAPI):
     """启动时初始化数据库连接池，关闭时释放"""
     logger.info("=== AI Model Gateway 启动中 ===")
-    await init_db_pool()
+    try:
+        await init_db_pool()
+    except Exception as e:
+        logger.error("✖ 数据库连接失败，系统启动终止: %s", e)
+        # logger.error("  请检查 .env 中的数据库配置 (DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME)")
+        raise SystemExit(1) from e
     logger.info("=== 服务就绪 ===")
     yield
     logger.info("=== AI Model Gateway 关闭中 ===")
     await close_db_pool()
 
-try:
-    # 接入 SkyWalking
-    from skywalking import agent, config
-    config.init(
-        service_name="model-gateway",
-        collector_backend_services="127.0.0.1:11800"
-    )
-    agent.start()
-except Exception as e:
-    logger.error("SkyWalking 初始化失败: %s", e)
+# try:
+#     # 接入 SkyWalking
+#     from skywalking import agent, config
+#     config.init(
+#         service_name="model-gateway",
+#         collector_backend_services="127.0.0.1:11800"
+#     )
+#     agent.start()
+# except Exception as e:
+#     logger.error("SkyWalking 初始化失败: %s", e)
 
 # ── 创建 FastAPI 应用 ─────────────────────────────────────────
 app = FastAPI(
@@ -171,12 +176,78 @@ if os.path.isdir(_static_dir):
 
 
 # ── 入口 ──────────────────────────────────────────────────────
+def ensure_self_signed_cert():
+    """生成自签名证书（如不存在），使用 Python cryptography 库"""
+    cert_dir = settings.ssl_cert_dir
+    os.makedirs(cert_dir, exist_ok=True)
+    cert_path = os.path.join(cert_dir, settings.ssl_cert_file)
+    key_path = os.path.join(cert_dir, settings.ssl_key_file)
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        return cert_path, key_path
+
+    logger.info("🔐 正在生成自签名证书...")
+    import datetime
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    try:
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        subject = issuer = x509.Name([
+            x509.NameAttribute(NameOID.COUNTRY_NAME, "CN"),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Local"),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, "Local"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "ModelGateway"),
+            x509.NameAttribute(NameOID.COMMON_NAME, "localhost"),
+        ])
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.utcnow())
+            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+            .add_extension(
+                x509.SubjectAlternativeName([
+                    x509.DNSName("localhost"),
+                    x509.IPAddress(__import__("ipaddress").ip_address("127.0.0.1")),
+                ]),
+                critical=False,
+            )
+            .sign(key, hashes.SHA256())
+        )
+        with open(key_path, "wb") as f:
+            f.write(key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
+            ))
+        with open(cert_path, "wb") as f:
+            f.write(cert.public_bytes(serialization.Encoding.PEM))
+        logger.info("✅ 自签名证书已生成: %s, %s", cert_path, key_path)
+    except Exception as e:
+        logger.error("✖ 证书生成失败: %s", e)
+        raise SystemExit(1)
+    return cert_path, key_path
+
+
 if __name__ == "__main__":
     import uvicorn
+
+    ssl_kwargs = {}
+    if settings.ssl_enabled:
+        cert_path, key_path = ensure_self_signed_cert()
+        ssl_kwargs["ssl_certfile"] = cert_path
+        ssl_kwargs["ssl_keyfile"] = key_path
+        logger.info("🔒 HTTPS 已启用")
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8086,
         reload=settings.app_env == "development",
         log_level=settings.log_level.lower(),
+        **ssl_kwargs,
     )

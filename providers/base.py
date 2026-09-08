@@ -5,6 +5,7 @@ providers/base.py — 厂商适配器抽象基类
 from __future__ import annotations
 import asyncio
 import aiohttp
+import json
 import logging
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Optional, Any, Union
@@ -13,12 +14,137 @@ from models.openai_models import ChatCompletionRequest, ChatCompletionResponse, 
 logger = logging.getLogger("gateway.provider")
 
 
+# ── 上游错误解析与友好提示 ──────────────────────────────────────
+
+# 关键词 → 友好提示（按优先级排列，命中即返回）
+_ERROR_HINTS: list[tuple[tuple[str, ...], str]] = [
+    (("insufficient_balance", "insufficient_quota", "insufficient account balance",
+      "arrearage", "余额不足", "欠费"), "上游账户余额不足"),
+    (("invalid_api_key", "invalid_apikey", "authentication_error", "unauthorized",
+      "invalid token", "token is invalid", "api key", "apikey", "认证失败", "鉴权失败",
+      "key 无效", "key 已失效"), "上游 API Key 无效或已失效"),
+    (("permission_denied", "forbidden", "无权限", "禁止访问"), "上游拒绝访问"),
+    (("model_not_found", "model_not_exist", "模型不存在"), "上游模型不存在"),
+    (("rate_limit", "rate limit", "too many requests", "限流", "频率限制"), "上游限流，请稍后重试"),
+    (("context_length_exceeded", "maximum context length", "上下文长度"), "请求超出模型上下文长度限制"),
+]
+
+# HTTP 状态码兜底提示
+_STATUS_HINTS = {
+    401: "上游 API Key 无效或已失效",
+    402: "上游账户余额不足",
+    403: "上游拒绝访问",
+    404: "上游模型或接口不存在",
+    429: "上游限流，请稍后重试",
+    500: "上游服务内部错误",
+    502: "上游服务内部错误",
+    503: "上游服务不可用",
+    504: "上游服务超时",
+}
+
+
+def _error_hint(status: int, code: Optional[str], err_type: Optional[str], message: str) -> Optional[str]:
+    """根据上游错误码/类型/消息推断友好提示"""
+    key = f"{code or ''} {err_type or ''}".lower()
+    text = f"{key} {message or ''}".lower()
+    for keywords, hint in _ERROR_HINTS:
+        if any(k in text for k in keywords):
+            return hint
+    return _STATUS_HINTS.get(status)
+
+
+def _parse_error_body(body: str) -> tuple[Optional[str], Optional[str], str]:
+    """
+    从上游错误响应体中提取 (code, type, message)。
+    兼容 OpenAI 风格（嵌套 error 对象）与 Dify/Coze 风格（顶层 code/message）。
+    """
+    try:
+        data = json.loads(body)
+    except Exception:
+        return None, None, body.strip()[:500]
+    if not isinstance(data, dict):
+        return None, None, str(data)[:500]
+
+    err = data.get("error")
+    if isinstance(err, dict):
+        # OpenAI 风格: {"error": {"code": "...", "message": "...", "type": "..."}}
+        return (
+            str(err["code"]) if err.get("code") is not None else None,
+            str(err["type"]) if err.get("type") is not None else None,
+            str(err.get("message") or "").strip() or body.strip()[:500],
+        )
+    # Dify/Coze 风格: 顶层 code/msg
+    code = data.get("code") if data.get("code") is not None else data.get("status")
+    msg = data.get("message") or data.get("msg")
+    return (
+        str(code) if code is not None else None,
+        str(data["type"]) if data.get("type") is not None else None,
+        str(msg).strip() if msg else body.strip()[:500],
+    )
+
+
 class ProviderException(Exception):
-    """上游请求异常，携带 HTTP 状态码"""
-    def __init__(self, message: str, status_code: int = 500, upstream_status: int = 0):
+    """
+    上游请求异常，携带 HTTP 状态码与结构化上游错误信息。
+
+    - message: 给客户端展示的组合消息（友好提示 + 上游原始消息）
+    - upstream_code / upstream_type / upstream_message: 从上游错误体解析出的结构化字段
+    """
+    def __init__(
+        self,
+        message: str,
+        status_code: int = 500,
+        upstream_status: int = 0,
+        upstream_code: Optional[str] = None,
+        upstream_type: Optional[str] = None,
+        upstream_message: Optional[str] = None,
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.upstream_status = upstream_status
+        self.upstream_code = upstream_code
+        self.upstream_type = upstream_type
+        self.upstream_message = upstream_message
+
+    def to_error_dict(self) -> dict:
+        """
+        构造 OpenAI 兼容的标准错误响应体，返回给前端：
+        {"error": {"message": "友好提示: 上游原始消息", "type": "upstream_error",
+                    "code": "上游错误码", "upstream_status": 402}}
+        """
+        err: dict = {"message": str(self), "type": "upstream_error"}
+        code = self.upstream_code or self.upstream_type
+        if code:
+            err["code"] = code
+        if self.upstream_status:
+            err["upstream_status"] = self.upstream_status
+        return {"error": err}
+
+
+def build_upstream_exception(status: int, err_body: str, prefix: str = "上游") -> ProviderException:
+    """
+    解析上游错误响应体并构造结构化异常（各 Provider 通用）。
+
+    message 组合规则：
+    - 能推断友好提示 → "友好提示: 上游原始消息"（如 "上游账户余额不足: Insufficient account balance"）
+    - 无法推断       → "上游返回 402: 原始消息"
+    """
+    code, err_type, upstream_msg = _parse_error_body(err_body)
+    hint = _error_hint(status, code, err_type, upstream_msg)
+
+    if hint:
+        message = f"{hint}: {upstream_msg}" if upstream_msg else hint
+    else:
+        message = f"{prefix}返回 {status}: {upstream_msg}" if upstream_msg else f"{prefix}返回 {status}"
+
+    return ProviderException(
+        message,
+        status_code=BaseProvider._map_upstream_status(status),
+        upstream_status=status,
+        upstream_code=code,
+        upstream_type=err_type,
+        upstream_message=upstream_msg or None,
+    )
 
 
 class TimeoutException(ProviderException):
@@ -126,12 +252,8 @@ class BaseProvider(ABC):
                     status = resp.status
                     data = await resp.json(content_type=None)
                     if status != 200:
-                        err_msg = data.get("error", {}).get("message", str(data)) if isinstance(data, dict) else str(data)
-                        raise ProviderException(
-                            f"上游返回 {status}: {err_msg}",
-                            status_code=self._map_upstream_status(status),
-                            upstream_status=status,
-                        )
+                        err_body = json.dumps(data, ensure_ascii=False) if isinstance(data, dict) else str(data)
+                        raise build_upstream_exception(status, err_body)
                     return data, status
         except asyncio.TimeoutError:
             raise TimeoutException()
@@ -155,11 +277,7 @@ class BaseProvider(ABC):
                 async with session.post(url, json=body, headers=headers) as resp:
                     if resp.status != 200:
                         err_body = await resp.text()
-                        raise ProviderException(
-                            f"上游返回 {resp.status}: {err_body[:200]}",
-                            status_code=self._map_upstream_status(resp.status),
-                            upstream_status=resp.status,
-                        )
+                        raise build_upstream_exception(resp.status, err_body)
                     async for raw_line in resp.content:
                         line = raw_line.decode("utf-8", errors="replace").strip()
                         if line:
@@ -173,8 +291,8 @@ class BaseProvider(ABC):
 
     @staticmethod
     def _map_upstream_status(upstream: int) -> int:
-        """将上游状态码映射为网关状态码"""
-        mapping = {401: 401, 403: 403, 429: 429, 500: 502, 503: 503, 504: 504}
+        """将上游状态码映射为网关状态码（上游 4xx 客户端类错误直接透传，5xx 统一 502）"""
+        mapping = {401: 401, 402: 402, 403: 403, 404: 404, 429: 429, 500: 502, 503: 503, 504: 504}
         return mapping.get(upstream, 502)
 
     @staticmethod

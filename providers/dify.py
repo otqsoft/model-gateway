@@ -10,7 +10,7 @@ import json
 import uuid
 import logging
 from typing import AsyncGenerator, Union
-from providers.base import BaseProvider, ProviderException
+from providers.base import BaseProvider, ProviderException, build_upstream_exception
 from models.openai_models import (
     ChatCompletionRequest, ChatCompletionResponse,
     Choice, ChatMessage, UsageInfo
@@ -113,11 +113,7 @@ class DifyProvider(BaseProvider):
             async with session.post(url, json=body, headers=headers) as resp:
                 if resp.status != 200:
                     err_body = await resp.text()
-                    raise ProviderException(
-                        f"Dify 上游返回 {resp.status}: {err_body[:300]}",
-                        status_code=502,
-                        upstream_status=resp.status,
-                    )
+                    raise build_upstream_exception(resp.status, err_body, prefix="Dify 上游")
                 data = await resp.json(content_type=None)
 
                 answer = data.get("answer", "")
@@ -177,11 +173,7 @@ class DifyProvider(BaseProvider):
             async with session.post(url, json=body, headers=headers) as resp:
                 if resp.status != 200:
                     err_body = await resp.text()
-                    raise ProviderException(
-                        f"Dify 上游返回 {resp.status}: {err_body[:300]}",
-                        status_code=502,
-                        upstream_status=resp.status,
-                    )
+                    raise build_upstream_exception(resp.status, err_body, prefix="Dify 上游")
 
                 event_id = f"chatcmpl-dify-{uuid.uuid4().hex[:24]}"
                 idx = 0

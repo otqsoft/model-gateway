@@ -207,10 +207,7 @@ async def chat_completions(
     except ProviderException as e:
         duration_ms = calc_duration_ms(start_ms)
         await update_log_error(request_id, e.upstream_status, str(e), duration_ms)
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": {"message": str(e), "type": "upstream_error"}},
-        )
+        raise HTTPException(status_code=e.status_code, detail=e.to_error_dict())
     except HTTPException:
         raise
     except Exception as e:
@@ -364,7 +361,7 @@ async def _handle_agent_request(
     except ProviderException as e:
         duration_ms = calc_duration_ms(start_ms)
         await update_log_error(request_id, e.upstream_status, str(e), duration_ms)
-        raise HTTPException(status_code=e.status_code, detail={"error": {"message": str(e)}})
+        raise HTTPException(status_code=e.status_code, detail=e.to_error_dict())
     except HTTPException:
         raise
     except Exception as e:
@@ -422,10 +419,10 @@ async def _agent_stream_generator(
 
     except TimeoutException:
         is_error = True; upstream_status = 0; error_msg = "Request timeout"
-        yield b"data: {\"error\":{\"message\":\"\\u4e0a\\u6e38\\u8bf7\\u6c42\\u8d85\\u65f6\"}}\n\n"
+        yield b"data: {\"error\":{\"message\":\"\\u4e0a\\u6e38\\u8bf7\\u6c42\\u8d85\\u65f6\",\"type\":\"timeout_error\"}}\n\n"
     except ProviderException as e:
         is_error = True; upstream_status = e.upstream_status; error_msg = str(e)
-        yield f"data: {json.dumps({'error':{'message':str(e)}}, ensure_ascii=False)}\n\n".encode("utf-8")
+        yield f"data: {json.dumps(e.to_error_dict(), ensure_ascii=False)}\n\n"
     except Exception as e:
         is_error = True; upstream_status = 0; error_msg = str(e)
         logger.exception("[%s] 智能体流式异常: %s", request_id, e)
@@ -523,10 +520,7 @@ async def _stream_generator(
         is_error = True
         upstream_status = e.upstream_status
         error_msg = str(e)
-        err_json = json.dumps(
-            {"error": {"message": str(e), "type": "upstream_error"}},
-            ensure_ascii=False
-        )
+        err_json = json.dumps(e.to_error_dict(), ensure_ascii=False)
         yield f"data: {err_json}\n\n".encode("utf-8")
 
     except Exception as e:

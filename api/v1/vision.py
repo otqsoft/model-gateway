@@ -178,8 +178,7 @@ async def _do_vision_request(
     except ProviderException as e:
         duration_ms = calc_duration_ms(start_ms)
         await update_log_error(request_id, e.upstream_status, str(e), duration_ms)
-        raise HTTPException(status_code=e.status_code,
-                            detail={"error": {"message": f"上游模型返回错误: {str(e)}"}})
+        raise HTTPException(status_code=e.status_code, detail=e.to_error_dict())
     except HTTPException:
         raise
     except Exception as e:
@@ -283,10 +282,10 @@ async def _vision_stream_generator(
 
     except TimeoutException:
         is_error = True; upstream_status = 0; error_msg = "Request timeout"
-        yield f"data: {json.dumps({'error': {'message': '上游请求超时'}}, ensure_ascii=False)}\n\n".encode("utf-8")
+        yield f"data: {json.dumps({'error': {'message': '上游请求超时', 'type': 'timeout_error'}}, ensure_ascii=False)}\n\n".encode("utf-8")
     except ProviderException as e:
         is_error = True; upstream_status = e.upstream_status; error_msg = str(e)
-        yield f"data: {json.dumps({'error': {'message': f'上游模型返回错误: {str(e)}'}}, ensure_ascii=False)}\n\n".encode("utf-8")
+        yield f"data: {json.dumps(e.to_error_dict(), ensure_ascii=False)}\n\n".encode("utf-8")
     except Exception as e:
         is_error = True; upstream_status = 0; error_msg = str(e)
         logger.exception("[%s] 图像理解流式异常: %s", request_id, e)

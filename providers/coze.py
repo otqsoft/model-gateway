@@ -9,7 +9,7 @@ import json
 import uuid
 import logging
 from typing import AsyncGenerator, Optional, Union
-from providers.base import BaseProvider, ProviderException
+from providers.base import BaseProvider, ProviderException, build_upstream_exception
 from models.openai_models import (
     ChatCompletionRequest, ChatCompletionResponse,
     Choice, ChatMessage, UsageInfo
@@ -69,11 +69,7 @@ class CozeProvider(BaseProvider):
             async with session.post(url, json=body, headers=headers) as resp:
                 if resp.status != 200:
                     err_body = await resp.text()
-                    raise ProviderException(
-                        f"Coze 上游返回 {resp.status}: {err_body[:300]}",
-                        status_code=502,
-                        upstream_status=resp.status,
-                    )
+                    raise build_upstream_exception(resp.status, err_body, prefix="Coze 上游")
                 create_data = await resp.json(content_type=None)
 
             code = create_data.get("code")
@@ -100,11 +96,7 @@ class CozeProvider(BaseProvider):
                 async with session.get(retrieve_url, params=params, headers=headers) as r:
                     if r.status != 200:
                         err_body = await r.text()
-                        raise ProviderException(
-                            f"Coze 轮询失败 {r.status}: {err_body[:300]}",
-                            status_code=502,
-                            upstream_status=r.status,
-                        )
+                        raise build_upstream_exception(r.status, err_body, prefix="Coze 轮询")
                     retrieve_data = await r.json(content_type=None)
 
                 retrieve_info = retrieve_data.get("data", {})
@@ -126,14 +118,10 @@ class CozeProvider(BaseProvider):
             msg_url = "https://api.coze.cn/v3/chat/message/list"
             params = {"chat_id": chat_id, "conversation_id": conversation_id}
             async with session.get(msg_url, params=params, headers=headers) as r:
-                if r.status != 200:
-                    err_body = await r.text()
-                    raise ProviderException(
-                        f"Coze 获取消息失败 {r.status}: {err_body[:300]}",
-                        status_code=502,
-                        upstream_status=r.status,
-                    )
-                msg_data = await r.json(content_type=None)
+                    if r.status != 200:
+                        err_body = await r.text()
+                        raise build_upstream_exception(r.status, err_body, prefix="Coze 获取消息")
+                    msg_data = await r.json(content_type=None)
 
             # 4. 再次 retrieve 获取 usage（completed 状态下包含 usage）
             usage_data = {}
@@ -303,11 +291,7 @@ class CozeProvider(BaseProvider):
                 async with session.post(url, json=body, headers=headers) as resp:
                     if resp.status != 200:
                         err_body = await resp.text()
-                        raise ProviderException(
-                            f"Coze 上游返回 {resp.status}: {err_body[:300]}",
-                            status_code=502,
-                            upstream_status=resp.status,
-                        )
+                        raise build_upstream_exception(resp.status, err_body, prefix="Coze 上游")
 
                     event_id = f"chatcmpl-coze-{uuid.uuid4().hex[:24]}"
                     idx = 0

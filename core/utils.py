@@ -70,3 +70,35 @@ def mask_key(key: str) -> str:
     if len(key) <= 12:
         return key[:4] + "****"
     return key[:8] + "****" + key[-4:]
+
+
+# 请求体日志摘要限制
+_REQ_STR_MAX = 512      # 单个字符串值最大长度（截断 base64 图片等）
+_REQ_TOTAL_MAX = 65536  # 序列化结果总长度上限（64KB）
+
+
+def summarize_request_body(body) -> str:
+    """
+    将请求体序列化为 JSON 字符串用于日志存储。
+    - 超长字符串值（如 base64 图片）截断，保留前缀并标注原始长度
+    - 总长度超过上限时整体截断
+    """
+    def _shrink(obj):
+        if isinstance(obj, str):
+            if len(obj) > _REQ_STR_MAX:
+                return obj[:_REQ_STR_MAX] + f"...[已截断，原始长度 {len(obj)}]"
+            return obj
+        if isinstance(obj, dict):
+            return {k: _shrink(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_shrink(v) for v in obj]
+        return obj
+
+    try:
+        data = body.model_dump(exclude_none=True) if hasattr(body, "model_dump") else body
+        s = json.dumps(_shrink(data), ensure_ascii=False)
+    except Exception:
+        return ""
+    if len(s) > _REQ_TOTAL_MAX:
+        s = s[:_REQ_TOTAL_MAX] + "...[已截断]"
+    return s

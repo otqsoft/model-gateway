@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from middleware.auth import authenticate_request
 from middleware.time_control import check_time_access
 from core.limiter import ConcurrencyGuard, RateLimitExceeded
-from core.utils import new_request_id, now_ms, calc_duration_ms, sse_done
+from core.utils import new_request_id, now_ms, calc_duration_ms, sse_done, summarize_request_body
 from models.openai_models import ChatCompletionRequest, ChatCompletionResponse
 from models.db_models import ApiKeyRow
 from crud.request_logs import (
@@ -104,6 +104,7 @@ async def chat_completions(
         model_alias=model_alias,
         is_stream=is_stream,
         client_ip=client_ip,
+        request_body=summarize_request_body(body),
     )
 
     # ── 6. 三级并发限流 ─────────────────────────────────────────
@@ -273,6 +274,7 @@ async def _handle_agent_request(
         model_alias=model_alias,
         is_stream=is_stream,
         client_ip=client_ip,
+        request_body=summarize_request_body(body),
     )
 
     start_ms = now_ms()

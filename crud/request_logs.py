@@ -13,16 +13,18 @@ async def create_request_log(
     model_alias: str,
     is_stream: bool,
     client_ip: Optional[str],
+    request_body: Optional[str] = None,
 ) -> None:
     """创建初始日志记录（pending 状态）"""
     sql = """
     INSERT INTO request_logs
-        (request_id, api_key_id, key_id, model_alias, status, is_stream, client_ip, started_at)
-    VALUES (%s, %s, %s, %s, 'pending', %s, %s, NOW(3))
+        (request_id, api_key_id, key_id, model_alias, status, is_stream, client_ip,
+         request_body, started_at)
+    VALUES (%s, %s, %s, %s, 'pending', %s, %s, %s, NOW(3))
     """
     async with DBHelper() as db:
         await db.execute(sql, (request_id, api_key_id, key_id, model_alias,
-                               int(is_stream), client_ip))
+                               int(is_stream), client_ip, request_body))
 
 
 async def update_log_running(request_id: str, provider_name: str, upstream_model: str) -> None:
@@ -107,7 +109,14 @@ async def query_logs(
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[list[dict], int]:
-    """多条件分页查询日志"""
+    """多条件分页查询日志（不含 request_body 大字段，详情页单独查询）"""
+    # 列表页不返回 request_body，避免大字段拖慢列表加载
+    list_cols = (
+        "id, request_id, api_key_id, key_id, model_alias, provider_name, upstream_model, "
+        "status, is_stream, client_ip, upstream_status, error_message, "
+        "prompt_tokens, completion_tokens, total_tokens, ttft_ms, duration_ms, "
+        "started_at, ended_at, created_at"
+    )
     conditions = []
     args = []
 
@@ -146,7 +155,7 @@ async def query_logs(
         total = cnt_row["cnt"] if cnt_row else 0
 
         rows = await db.fetchall(
-            f"SELECT * FROM request_logs {where_clause} "
+            f"SELECT {list_cols} FROM request_logs {where_clause} "
             f"ORDER BY started_at DESC LIMIT %s OFFSET %s",
             args + [page_size, offset]
         )

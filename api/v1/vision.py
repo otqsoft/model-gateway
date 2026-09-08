@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from middleware.auth import authenticate_request
 from middleware.time_control import check_time_access
 from core.limiter import ConcurrencyGuard, RateLimitExceeded
-from core.utils import new_request_id, now_ms, calc_duration_ms
+from core.utils import new_request_id, now_ms, calc_duration_ms, summarize_request_body
 from models.openai_models import ChatCompletionRequest, ChatMessage
 from models.db_models import ApiKeyRow
 from crud.request_logs import (
@@ -108,6 +108,7 @@ async def _do_vision_request(
     await create_request_log(
         request_id=request_id, api_key_id=key_row.id, key_id=key_row.key_id,
         model_alias=model, is_stream=chat_request.stream, client_ip=client_ip,
+        request_body=summarize_request_body(chat_request),
     )
 
     start_ms = now_ms()

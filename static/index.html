@@ -2905,7 +2905,23 @@ async function showLogDetail(rid){
         }</span>
       </div>`;
     }).join('');
-    document.getElementById('modal-log-body').innerHTML=html;
+
+    // 请求内容区块（JSON 美化展示 + 复制）
+    let reqHtml='';
+    if(r.request_body){
+      let pretty=r.request_body;
+      try{pretty=JSON.stringify(JSON.parse(r.request_body),null,2);}catch(e){}
+      const esc=pretty.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const sizeKB=(new Blob([r.request_body]).size/1024).toFixed(1);
+      reqHtml=`<div style="margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-weight:600;font-size:13px">请求内容 <span style="color:var(--text-muted);font-weight:400;font-size:11px">（${sizeKB} KB）</span></span>
+          <button class="btn btn-sm" onclick="copyText(document.getElementById('log-req-body').textContent)">复制</button>
+        </div>
+        <pre id="log-req-body" style="background:var(--bg-card2);border:1px solid var(--border);border-radius:6px;padding:10px;max-height:320px;overflow:auto;font-size:11px;line-height:1.6;font-family:monospace;white-space:pre-wrap;word-break:break-all;margin:0">${esc}</pre>
+      </div>`;
+    }
+    document.getElementById('modal-log-body').innerHTML=html+reqHtml;
     openModal('modal-log');
   }catch(e){toast('加载详情失败: '+e.message,'err')}
 }
